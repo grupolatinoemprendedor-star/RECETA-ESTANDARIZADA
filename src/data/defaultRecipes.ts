@@ -1,0 +1,322 @@
+import { Recipe } from '../types/recipe';
+
+export function createNewRecipe(): Recipe {
+  const now = new Date();
+  const dateStr = now.toISOString().split('T')[0];
+
+  return {
+    id: 'receta_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+    nombre: 'Nueva Receta Estándar',
+    imagen: '',
+    fecha: dateStr,
+    creador: 'Técnico en Cocina',
+    establecimiento: 'Taller de Producción Gastronómica',
+    pax: 10,
+    ingredientes: [
+      {
+        id: 'ing_1',
+        item: 1,
+        ingrediente: '',
+        miseEnPlace: '',
+        unidad: 'g',
+        cantidadPorPax: 0,
+        valorUnidadMinima: 0,
+      },
+    ],
+    mermaPorcentaje: 15,
+    porcentajeCosto: 30,
+    impoconsumoActivo: true,
+    impoconsumoPorcentaje: 8,
+    redondearPrecios: true,
+    metodoRedondeo: 'mil',
+    pasos: [
+      { id: 'step_1', numero: 1, descripcion: 'Mise en place general: Pesaje de ingredientes, lavado y sanitización.' },
+      { id: 'step_2', numero: 2, descripcion: 'Cortes técnicos preliminares y preparación de bases aromáticas.' },
+      { id: 'step_3', numero: 3, descripcion: 'Cocción primaria y aplicación de técnicas térmicas.' },
+      { id: 'step_4', numero: 4, descripcion: 'Integración de componentes, rectificación de sazón y punto de textura.' },
+      { id: 'step_5', numero: 5, descripcion: 'Control térmico y reposo técnico antes de servicio.' },
+      { id: 'step_6', numero: 6, descripcion: 'Montaje estándar de plato según especificaciones visuales de la ficha.' },
+    ],
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+}
+
+export const DEFAULT_RECIPES: Recipe[] = [
+  {
+    id: 'receta_amuleto_demo',
+    nombre: 'Amuleto de Arroz Campesino con Pollo Criollo',
+    imagen: 'https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&w=800&q=80',
+    fecha: '2026-09-25',
+    creador: 'Chef Instructor - Especialidad Cocina Caliente',
+    establecimiento: 'Restaurante Escuela Gastronómica',
+    pax: 15,
+    ingredientes: [
+      {
+        id: 'ing_amuleto_1',
+        item: 1,
+        ingrediente: 'Arroz blanco tipo selecto',
+        miseEnPlace: 'Limpio y medido, sin lavar para conservar fécula superficial',
+        unidad: 'g',
+        cantidadPorPax: 26.67,
+        valorUnidadMinima: 5,
+      },
+      {
+        id: 'ing_amuleto_2',
+        item: 2,
+        ingrediente: 'Pechuga de pollo deshuesada',
+        miseEnPlace: 'Desgrasada y cortada en cubos uniformes de 2x2 cm',
+        unidad: 'g',
+        cantidadPorPax: 120,
+        valorUnidadMinima: 18,
+      },
+      {
+        id: 'ing_amuleto_3',
+        item: 3,
+        ingrediente: 'Cebolla cabezona blanca',
+        miseEnPlace: 'Pelada y cortada en brunoise fino de 2 mm',
+        unidad: 'g',
+        cantidadPorPax: 20,
+        valorUnidadMinima: 4,
+      },
+      {
+        id: 'ing_amuleto_4',
+        item: 4,
+        ingrediente: 'Pimentón rojo maduro',
+        miseEnPlace: 'Desvenado, sin semillas y cortado en julianas finas',
+        unidad: 'g',
+        cantidadPorPax: 15,
+        valorUnidadMinima: 6.5,
+      },
+      {
+        id: 'ing_amuleto_5',
+        item: 5,
+        ingrediente: 'Ajo morado nacional',
+        miseEnPlace: 'Pelado y macerado en pasta con pizca de sal',
+        unidad: 'g',
+        cantidadPorPax: 3,
+        valorUnidadMinima: 14,
+      },
+      {
+        id: 'ing_amuleto_6',
+        item: 6,
+        ingrediente: 'Arveja verde tierna',
+        miseEnPlace: 'Desgranada y blanqueada por 90 segundos a 100°C',
+        unidad: 'g',
+        cantidadPorPax: 25,
+        valorUnidadMinima: 7.2,
+      },
+      {
+        id: 'ing_amuleto_7',
+        item: 7,
+        ingrediente: 'Zanahoria fresca',
+        miseEnPlace: 'Pelada y cortada en macedonia de 4x4 mm',
+        unidad: 'g',
+        cantidadPorPax: 20,
+        valorUnidadMinima: 3.8,
+      },
+      {
+        id: 'ing_amuleto_8',
+        item: 8,
+        ingrediente: 'Fondo claro de ave',
+        miseEnPlace: 'Clarificado, desgrasado y mantenido caliente a 85°C',
+        unidad: 'ml',
+        cantidadPorPax: 150,
+        valorUnidadMinima: 2.5,
+      },
+      {
+        id: 'ing_amuleto_9',
+        item: 9,
+        ingrediente: 'Aceite vegetal achiotado',
+        miseEnPlace: 'Infusionado previamente con semilla de achiote artesanal',
+        unidad: 'ml',
+        cantidadPorPax: 10,
+        valorUnidadMinima: 16,
+      },
+      {
+        id: 'ing_amuleto_10',
+        item: 10,
+        ingrediente: 'Cilantro criollo fresco',
+        miseEnPlace: 'Deshojado, lavado, escurrido y en chiffonade fino',
+        unidad: 'g',
+        cantidadPorPax: 5,
+        valorUnidadMinima: 8,
+      },
+      {
+        id: 'ing_amuleto_11',
+        item: 11,
+        ingrediente: 'Sal marina fina',
+        miseEnPlace: 'Pesada para dosificación técnica',
+        unidad: 'g',
+        cantidadPorPax: 2,
+        valorUnidadMinima: 1.5,
+      },
+    ],
+    mermaPorcentaje: 15,
+    porcentajeCosto: 30,
+    impoconsumoActivo: true,
+    impoconsumoPorcentaje: 8,
+    pasos: [
+      {
+        id: 'paso_1',
+        numero: 1,
+        descripcion:
+          'Mise en place general: Pesar con precisión los ingredientes secos y líquidos. Lavar y sanitizar vegetales con solución clorada a 50 ppm por 5 minutos. Ejecutar los cortes técnicos especificados asegurando uniformidad para cocción homogénea.',
+      },
+      {
+        id: 'paso_2',
+        numero: 2,
+        descripcion:
+          'Tratamiento térmico de la proteína: En rondón o sartén de fondo grueso a temperatura viva, disponer la mitad del aceite achiotado. Sellar los cubos de pollo hasta lograr reacción de Maillard superficial sin sobrecocinar el núcleo. Retirar y reservar jugos.',
+      },
+      {
+        id: 'paso_3',
+        numero: 3,
+        descripcion:
+          'Construcción del sofrito criollo: En la grasa residual del sellado, agregar el aceite restante. Sofreír la cebolla cabezona y el ajo a fuego moderado (120°C) durante 6 minutos hasta traslúcidos. Añadir pimentón y zanahoria, sudar 3 minutos más.',
+      },
+      {
+        id: 'paso_4',
+        numero: 4,
+        descripcion:
+          'Nacarado y cocción del grano: Incorporar el arroz al sofrito y nacarar revolviendo suavemente durante 2 minutos hasta que los bordes del grano se tornen translúcidos. Mojar con el fondo de ave caliente y salar.',
+      },
+      {
+        id: 'paso_5',
+        numero: 5,
+        descripcion:
+          'Concentración y secado: Mantener ebullición viva destapada hasta que el caldo se absorba al nivel superficial del arroz (ojos de evaporación). Integrar las arvejas blanqueadas y los cubos de pollo sellados. Tapar herméticamente y reducir a fuego mínimo por 18 minutos.',
+      },
+      {
+        id: 'paso_6',
+        numero: 6,
+        descripcion:
+          'Reposo técnico y montaje: Apagar el fuego y dejar en reposo pasivo tapado 5 minutos para estabilizar la humedad interna del almidón. Abrir suavemente con tenedor gastronómico, agregar el cilantro fresco y montar en plato hondo precalentado a 68°C.',
+      },
+    ],
+    temperaturaServicio: '65°C a 70°C en plato caliente',
+    tiempoPreparacion: '45 minutos de cocción activa',
+    createdAt: 1727280000000,
+    updatedAt: 1727280000000,
+  },
+  {
+    id: 'receta_lomo_al_trapo',
+    nombre: 'Lomo al Trapo Tradicional con Reducción de Panela y Café',
+    imagen: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80',
+    fecha: '2026-09-25',
+    creador: 'Chef Instructor - Carnes y Asados',
+    establecimiento: 'Restaurante Escuela Gastronómica',
+    pax: 10,
+    ingredientes: [
+      {
+        id: 'ing_lomo_1',
+        item: 1,
+        ingrediente: 'Lomo fino de res (Centro de solomillo)',
+        miseEnPlace: 'Limpio de tejido conectivo, cordón y cabeza; seco con papel absorbente',
+        unidad: 'g',
+        cantidadPorPax: 220,
+        valorUnidadMinima: 38,
+      },
+      {
+        id: 'ing_lomo_2',
+        item: 2,
+        ingrediente: 'Sal marina gruesa sin refinar',
+        miseEnPlace: 'Homogénea para costra protectora',
+        unidad: 'g',
+        cantidadPorPax: 100,
+        valorUnidadMinima: 2.2,
+      },
+      {
+        id: 'ing_lomo_3',
+        item: 3,
+        ingrediente: 'Pimienta negra en grano',
+        miseEnPlace: 'Quebrada en mortero (mignonette)',
+        unidad: 'g',
+        cantidadPorPax: 4,
+        valorUnidadMinima: 25,
+      },
+      {
+        id: 'ing_lomo_4',
+        item: 4,
+        ingrediente: 'Vino tinto seco',
+        miseEnPlace: 'Para humedecer el lienzo de algodón puro',
+        unidad: 'ml',
+        cantidadPorPax: 30,
+        valorUnidadMinima: 18,
+      },
+      {
+        id: 'ing_lomo_5',
+        item: 5,
+        ingrediente: 'Panela orgánica rallada',
+        miseEnPlace: 'Rallada fina para salsa de reducción',
+        unidad: 'g',
+        cantidadPorPax: 20,
+        valorUnidadMinima: 6,
+      },
+      {
+        id: 'ing_lomo_6',
+        item: 6,
+        ingrediente: 'Café colombiano expreso fuerte',
+        miseEnPlace: 'Recién extraído sin azúcar',
+        unidad: 'ml',
+        cantidadPorPax: 25,
+        valorUnidadMinima: 12,
+      },
+      {
+        id: 'ing_lomo_7',
+        item: 7,
+        ingrediente: 'Mantequilla sin sal',
+        miseEnPlace: 'En cubos fríos para montar la salsa en el passe',
+        unidad: 'g',
+        cantidadPorPax: 15,
+        valorUnidadMinima: 22,
+      },
+    ],
+    mermaPorcentaje: 18,
+    porcentajeCosto: 32,
+    impoconsumoActivo: true,
+    impoconsumoPorcentaje: 8,
+    pasos: [
+      {
+        id: 'lomo_p_1',
+        numero: 1,
+        descripcion:
+          'Acondicionamiento del lienzo: Extender un lienzo de algodón puro 100% (sin apresto ni suavizantes). Humedecer uniformemente con el vino tinto seco.',
+      },
+      {
+        id: 'lomo_p_2',
+        numero: 2,
+        descripcion:
+          'Construcción del lecho de sal: Esparcir una capa continua de 1 cm de sal marina gruesa mezclada con la pimienta mignonette sobre el lienzo húmedo.',
+      },
+      {
+        id: 'lomo_p_3',
+        numero: 3,
+        descripcion:
+          'Envoltura y bridado: Colocar el lomo entero sobre la sal. Enrollar firmemente sellando los extremos como caramelo con piola de cocina para evitar fuga de vapor.',
+      },
+      {
+        id: 'lomo_p_4',
+        numero: 4,
+        descripcion:
+          'Cocción directa al fuego o brasa: Disponer el paquete directamente sobre brasa viva de carbón de leña sin parrilla por 12 minutos por lado.',
+      },
+      {
+        id: 'lomo_p_5',
+        numero: 5,
+        descripcion:
+          'Elaboración de la salsa: En una cacerola, reducir el café con la panela rallada a fuego suave hasta punto de jarabe ligero; montar con cubos de mantequilla fría fuera del fuego.',
+      },
+      {
+        id: 'lomo_p_6',
+        numero: 6,
+        descripcion:
+          'Ruptura de costra y servicio: Romper la coraza de sal quemada con maza de cocina, sacudir el exceso de sal, dejar reposar la carne 4 minutos, trinchar en medallones y napar con la salsa.',
+      },
+    ],
+    temperaturaServicio: '55°C en el centro (Término Medio 3/4)',
+    tiempoPreparacion: '35 minutos',
+    createdAt: 1727280100000,
+    updatedAt: 1727280100000,
+  },
+];

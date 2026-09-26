@@ -1,0 +1,6 @@
+{
+  "name": "Receta Estándar - Técnico en Cocina",
+  "description": "Sistema profesional de estandarización, costeo y documentación gastronómica para técnicos en cocina y restaurantes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
