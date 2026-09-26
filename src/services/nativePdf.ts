@@ -211,11 +211,11 @@ export function generateNativeRecipePDF(recipe: Recipe, calculations: RecipeCalc
     };
 
     addCostRow('Costo Materia Prima Total:', formatCurrency(calculations.costoMateriaPrimaTotal));
-    addCostRow(`+ Merma de Cocción/Producción (${calculations.mermaPorcentaje}%):`, formatCurrency(calculations.costoConMerma));
-    addCostRow(`Food Cost Establecido:`, `${calculations.porcentajeCosto}%`);
-    addCostRow(`Precio Base (Costo / % Food Cost):`, formatCurrency(calculations.precioVenta));
+    addCostRow(`+ Merma de Cocción/Prod. (${calculations.mermaPorcentaje}%):`, formatCurrency(calculations.costoConMerma));
+    addCostRow(`Margen de Utilidad Deseado:`, `${100 - calculations.porcentajeCosto}%`);
+    addCostRow(`% Food Cost (Costo Materia Prima):`, `${calculations.porcentajeCosto}%`);
+    addCostRow(`Precio Base (Costo ÷ % Food Cost):`, formatCurrency(calculations.precioVenta));
     addCostRow(`+ Impoconsumo (${recipe.impoconsumoActivo ? `${recipe.impoconsumoPorcentaje}%` : '0%'}):`, formatCurrency(calculations.valorImpoconsumo));
-    addCostRow(`Margen Bruto Estimado:`, `~${calculations.margenBrutoEstimado.toFixed(1)}%`, true);
 
     // Draw PRECIO REAL DE VENTA Box (Right 50% - High Visual Accent)
     const rightBoxX = margin + boxWidth + 6;

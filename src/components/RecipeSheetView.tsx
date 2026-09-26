@@ -269,10 +269,12 @@ export const RecipeSheetView: React.FC<RecipeSheetViewProps> = ({
                   </tr>
                   <tr className="bg-[#FAF8F5]">
                     <td className="py-2 px-3 font-medium text-stone-600">
-                      Porcentaje de Costo (Food Cost):
+                      Margen de Utilidad / Food Cost:
                     </td>
-                    <td className="py-2 px-3 text-right font-mono text-stone-700">
-                      {calculations.porcentajeCosto}% (Factor: {(calculations.porcentajeCosto / 100).toFixed(2)})
+                    <td className="py-2 px-3 text-right font-mono text-stone-800">
+                      <span className="font-bold text-[#8C7A5B]">{100 - calculations.porcentajeCosto}% Utilidad</span>
+                      <span className="text-stone-500 mx-1">/</span>
+                      <span>{calculations.porcentajeCosto}% Costo</span>
                     </td>
                   </tr>
                   <tr className="bg-white">
