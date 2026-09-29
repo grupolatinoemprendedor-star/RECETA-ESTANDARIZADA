@@ -87,16 +87,27 @@ export function generateNativeRecipePDF(recipe: Recipe, calculations: RecipeCalc
 
     currentY += 24;
 
-    // --- TABLA DE INGREDIENTES (9 COLUMNAS) ---
+    // --- TABLA DE INGREDIENTES (10 COLUMNAS con G.I) ---
     doc.setTextColor(28, 30, 33);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.text('1. LISTA TÉCNICA DE INGREDIENTES Y COSTEO AL GRAMO', margin, currentY);
 
-    currentY += 2;
+    // G.I legend
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6.5);
+    doc.setTextColor(110, 110, 110);
+    doc.text(
+      'G.I (Grupo de Inventario): F=Fruver | C=Cárnicos | L=Lácteos | E=Economato | S=Suministros',
+      margin,
+      currentY + 3.5
+    );
+
+    currentY += 5;
 
     const tableRows = calculations.ingredientesCalculados.map((item, idx) => [
       (idx + 1).toString(),
+      item.grupoInventario ? item.grupoInventario.toUpperCase() : '-',
       item.ingrediente,
       item.miseEnPlace || '-',
       item.unidad,
@@ -109,6 +120,7 @@ export function generateNativeRecipePDF(recipe: Recipe, calculations: RecipeCalc
 
     // Footer row with totals
     const footerRow = [
+      '',
       '',
       'COSTO TOTAL DE MATERIA PRIMA',
       '',
@@ -126,6 +138,7 @@ export function generateNativeRecipePDF(recipe: Recipe, calculations: RecipeCalc
       head: [
         [
           'N°',
+          'G.I',
           'INGREDIENTE',
           'MISE EN PLACE',
           'UNIDAD',
@@ -148,15 +161,16 @@ export function generateNativeRecipePDF(recipe: Recipe, calculations: RecipeCalc
         valign: 'middle',
       },
       columnStyles: {
-        0: { halign: 'center', cellWidth: 8 },
-        1: { halign: 'left', fontStyle: 'bold', cellWidth: 42 },
-        2: { halign: 'left', cellWidth: 32 },
-        3: { halign: 'center', cellWidth: 14 },
-        4: { halign: 'right', cellWidth: 16 },
-        5: { halign: 'right', cellWidth: 18 },
-        6: { halign: 'right', cellWidth: 18 },
-        7: { halign: 'right', cellWidth: 19 },
-        8: { halign: 'right', cellWidth: 20 },
+        0: { halign: 'center', cellWidth: 7 },
+        1: { halign: 'center', fontStyle: 'bold', cellWidth: 8 },
+        2: { halign: 'left', fontStyle: 'bold', cellWidth: 38 },
+        3: { halign: 'left', cellWidth: 30 },
+        4: { halign: 'center', cellWidth: 13 },
+        5: { halign: 'right', cellWidth: 15 },
+        6: { halign: 'right', cellWidth: 17 },
+        7: { halign: 'right', cellWidth: 18 },
+        8: { halign: 'right', cellWidth: 19 },
+        9: { halign: 'right', cellWidth: 21 },
       },
       footStyles: {
         fillColor: [240, 236, 228],
@@ -195,22 +209,23 @@ export function generateNativeRecipePDF(recipe: Recipe, calculations: RecipeCalc
     const boxWidth = (contentWidth - 6) / 2;
     doc.setFillColor(250, 248, 245);
     doc.setDrawColor(221, 213, 199);
-    doc.roundedRect(margin, currentY, boxWidth, 40, 2, 2, 'FD');
+    doc.roundedRect(margin, currentY, boxWidth, 44, 2, 2, 'FD');
 
-    doc.setFontSize(7.5);
+    doc.setFontSize(7.2);
     doc.setTextColor(70, 70, 70);
     doc.setFont('helvetica', 'normal');
 
-    let leftTextY = currentY + 6;
+    let leftTextY = currentY + 5.5;
     const addCostRow = (label: string, value: string, isBold = false) => {
       doc.setFont('helvetica', isBold ? 'bold' : 'normal');
       doc.setTextColor(isBold ? 20 : 70, isBold ? 20 : 70, isBold ? 20 : 70);
       doc.text(label, margin + 4, leftTextY);
       doc.text(value, margin + boxWidth - 4, leftTextY, { align: 'right' });
-      leftTextY += 5.5;
+      leftTextY += 5.2;
     };
 
     addCostRow('Costo Materia Prima Total:', formatCurrency(calculations.costoMateriaPrimaTotal));
+    addCostRow(`+ Margen de Error (${calculations.margenErrorPorcentaje}%):`, `+${formatCurrency(calculations.valorMargenError)}`);
     addCostRow(`+ Merma de Cocción/Prod. (${calculations.mermaPorcentaje}%):`, formatCurrency(calculations.costoConMerma));
     addCostRow(`Margen de Utilidad Deseado:`, `${100 - calculations.porcentajeCosto}%`);
     addCostRow(`% Food Cost (Costo Materia Prima):`, `${calculations.porcentajeCosto}%`);
@@ -222,7 +237,7 @@ export function generateNativeRecipePDF(recipe: Recipe, calculations: RecipeCalc
     doc.setFillColor(36, 42, 36); // #242A24
     doc.setDrawColor(140, 122, 91); // #8C7A5B
     doc.setLineWidth(0.6);
-    doc.roundedRect(rightBoxX, currentY, boxWidth, 40, 2, 2, 'FD');
+    doc.roundedRect(rightBoxX, currentY, boxWidth, 44, 2, 2, 'FD');
 
     doc.setTextColor(209, 189, 155);
     doc.setFont('helvetica', 'bold');

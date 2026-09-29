@@ -9,9 +9,23 @@ export type StandardUnit =
   | 'arroba'
   | 'personalizada';
 
+export type GrupoInventario = 'f' | 'c' | 'L' | 'e' | 's';
+
+export const GRUPO_INVENTARIO_CONFIG: Record<
+  GrupoInventario,
+  { label: string; nombre: string; colorBg: string; colorText: string; colorBorder: string }
+> = {
+  f: { label: 'F', nombre: 'Fruver', colorBg: 'bg-emerald-100', colorText: 'text-emerald-800', colorBorder: 'border-emerald-300' },
+  c: { label: 'C', nombre: 'Cárnicos', colorBg: 'bg-red-100', colorText: 'text-red-800', colorBorder: 'border-red-300' },
+  L: { label: 'L', nombre: 'Lácteos', colorBg: 'bg-amber-100', colorText: 'text-amber-800', colorBorder: 'border-amber-300' },
+  e: { label: 'E', nombre: 'Economato', colorBg: 'bg-sky-100', colorText: 'text-sky-800', colorBorder: 'border-sky-300' },
+  s: { label: 'S', nombre: 'Suministros', colorBg: 'bg-purple-100', colorText: 'text-purple-800', colorBorder: 'border-purple-300' },
+};
+
 export interface IngredientItem {
   id: string;
   item: number; // 1, 2, 3...
+  grupoInventario?: GrupoInventario; // G.I: f (Fruver), c (Cárnicos), L (Lácteos), e (Economato), s (Suministros)
   ingrediente: string;
   miseEnPlace: string;
   unidad: StandardUnit | string;
@@ -37,6 +51,7 @@ export interface Recipe {
   establecimiento: string;
   pax: number;
   ingredientes: IngredientItem[];
+  margenErrorPorcentaje?: number; // e.g. 10 for 10% margen de error
   mermaPorcentaje: number; // e.g. 15 for 15%
   porcentajeCosto: number; // e.g. 30 for 30%
   impoconsumoActivo: boolean; // SÍ / NO
@@ -53,6 +68,7 @@ export interface Recipe {
 
 export interface CalculatedIngredient {
   item: number;
+  grupoInventario?: GrupoInventario;
   ingrediente: string;
   miseEnPlace: string;
   unidad: string;
@@ -69,6 +85,11 @@ export interface RecipeCalculations {
   ingredientesCalculados: CalculatedIngredient[];
   costoMateriaPrimaTotal: number;
   costoMateriaPrimaPorPax: number;
+  margenErrorPorcentaje: number;
+  costoConMargenError: number;
+  costoConMargenErrorPorPax: number;
+  valorMargenError: number;
+  valorMargenErrorPorPax: number;
   mermaPorcentaje: number;
   costoConMerma: number;
   costoConMermaPorPax: number;

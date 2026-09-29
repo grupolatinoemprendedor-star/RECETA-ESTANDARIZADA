@@ -16,6 +16,7 @@ export function createNewRecipe(): Recipe {
       {
         id: 'ing_1',
         item: 1,
+        grupoInventario: undefined,
         ingrediente: '',
         miseEnPlace: '',
         unidad: 'g',
@@ -23,6 +24,7 @@ export function createNewRecipe(): Recipe {
         valorUnidadMinima: 0,
       },
     ],
+    margenErrorPorcentaje: 10,
     mermaPorcentaje: 15,
     porcentajeCosto: 30,
     impoconsumoActivo: true,
@@ -55,6 +57,7 @@ export const DEFAULT_RECIPES: Recipe[] = [
       {
         id: 'ing_amuleto_1',
         item: 1,
+        grupoInventario: 'e', // Economato (Arroz)
         ingrediente: 'Arroz blanco tipo selecto',
         miseEnPlace: 'Limpio y medido, sin lavar para conservar fécula superficial',
         unidad: 'g',
@@ -64,6 +67,7 @@ export const DEFAULT_RECIPES: Recipe[] = [
       {
         id: 'ing_amuleto_2',
         item: 2,
+        grupoInventario: 'c', // Cárnicos (Pollo)
         ingrediente: 'Pechuga de pollo deshuesada',
         miseEnPlace: 'Desgrasada y cortada en cubos uniformes de 2x2 cm',
         unidad: 'g',
@@ -73,6 +77,7 @@ export const DEFAULT_RECIPES: Recipe[] = [
       {
         id: 'ing_amuleto_3',
         item: 3,
+        grupoInventario: 'f', // Fruver (Cebolla)
         ingrediente: 'Cebolla cabezona blanca',
         miseEnPlace: 'Pelada y cortada en brunoise fino de 2 mm',
         unidad: 'g',
@@ -82,6 +87,7 @@ export const DEFAULT_RECIPES: Recipe[] = [
       {
         id: 'ing_amuleto_4',
         item: 4,
+        grupoInventario: 'f', // Fruver (Pimentón)
         ingrediente: 'Pimentón rojo maduro',
         miseEnPlace: 'Desvenado, sin semillas y cortado en julianas finas',
         unidad: 'g',
@@ -91,6 +97,7 @@ export const DEFAULT_RECIPES: Recipe[] = [
       {
         id: 'ing_amuleto_5',
         item: 5,
+        grupoInventario: 'f', // Fruver (Ajo)
         ingrediente: 'Ajo morado nacional',
         miseEnPlace: 'Pelado y macerado en pasta con pizca de sal',
         unidad: 'g',
@@ -100,6 +107,7 @@ export const DEFAULT_RECIPES: Recipe[] = [
       {
         id: 'ing_amuleto_6',
         item: 6,
+        grupoInventario: 'f', // Fruver (Arveja)
         ingrediente: 'Arveja verde tierna',
         miseEnPlace: 'Desgranada y blanqueada por 90 segundos a 100°C',
         unidad: 'g',
@@ -109,6 +117,7 @@ export const DEFAULT_RECIPES: Recipe[] = [
       {
         id: 'ing_amuleto_7',
         item: 7,
+        grupoInventario: 'f', // Fruver (Zanahoria)
         ingrediente: 'Zanahoria fresca',
         miseEnPlace: 'Pelada y cortada en macedonia de 4x4 mm',
         unidad: 'g',
@@ -118,6 +127,7 @@ export const DEFAULT_RECIPES: Recipe[] = [
       {
         id: 'ing_amuleto_8',
         item: 8,
+        grupoInventario: 'e', // Economato (Fondo)
         ingrediente: 'Fondo claro de ave',
         miseEnPlace: 'Clarificado, desgrasado y mantenido caliente a 85°C',
         unidad: 'ml',
@@ -127,6 +137,7 @@ export const DEFAULT_RECIPES: Recipe[] = [
       {
         id: 'ing_amuleto_9',
         item: 9,
+        grupoInventario: 'e', // Economato (Aceite)
         ingrediente: 'Aceite vegetal achiotado',
         miseEnPlace: 'Infusionado previamente con semilla de achiote artesanal',
         unidad: 'ml',
@@ -136,6 +147,7 @@ export const DEFAULT_RECIPES: Recipe[] = [
       {
         id: 'ing_amuleto_10',
         item: 10,
+        grupoInventario: 'f', // Fruver (Cilantro)
         ingrediente: 'Cilantro criollo fresco',
         miseEnPlace: 'Deshojado, lavado, escurrido y en chiffonade fino',
         unidad: 'g',
@@ -145,6 +157,7 @@ export const DEFAULT_RECIPES: Recipe[] = [
       {
         id: 'ing_amuleto_11',
         item: 11,
+        grupoInventario: 'e', // Economato (Sal)
         ingrediente: 'Sal marina fina',
         miseEnPlace: 'Pesada para dosificación técnica',
         unidad: 'g',
@@ -152,6 +165,7 @@ export const DEFAULT_RECIPES: Recipe[] = [
         valorUnidadMinima: 1.5,
       },
     ],
+    margenErrorPorcentaje: 10,
     mermaPorcentaje: 15,
     porcentajeCosto: 30,
     impoconsumoActivo: true,
@@ -211,6 +225,7 @@ export const DEFAULT_RECIPES: Recipe[] = [
       {
         id: 'ing_lomo_1',
         item: 1,
+        grupoInventario: 'c', // Cárnicos
         ingrediente: 'Lomo fino de res (Centro de solomillo)',
         miseEnPlace: 'Limpio de tejido conectivo, cordón y cabeza; seco con papel absorbente',
         unidad: 'g',
@@ -220,6 +235,7 @@ export const DEFAULT_RECIPES: Recipe[] = [
       {
         id: 'ing_lomo_2',
         item: 2,
+        grupoInventario: 'e', // Economato
         ingrediente: 'Sal marina gruesa sin refinar',
         miseEnPlace: 'Homogénea para costra protectora',
         unidad: 'g',
@@ -229,6 +245,7 @@ export const DEFAULT_RECIPES: Recipe[] = [
       {
         id: 'ing_lomo_3',
         item: 3,
+        grupoInventario: 'e', // Economato
         ingrediente: 'Pimienta negra en grano',
         miseEnPlace: 'Quebrada en mortero (mignonette)',
         unidad: 'g',
@@ -238,6 +255,7 @@ export const DEFAULT_RECIPES: Recipe[] = [
       {
         id: 'ing_lomo_4',
         item: 4,
+        grupoInventario: 'e', // Economato
         ingrediente: 'Vino tinto seco',
         miseEnPlace: 'Para humedecer el lienzo de algodón puro',
         unidad: 'ml',
@@ -247,6 +265,7 @@ export const DEFAULT_RECIPES: Recipe[] = [
       {
         id: 'ing_lomo_5',
         item: 5,
+        grupoInventario: 'e', // Economato
         ingrediente: 'Panela orgánica rallada',
         miseEnPlace: 'Rallada fina para salsa de reducción',
         unidad: 'g',
@@ -256,6 +275,7 @@ export const DEFAULT_RECIPES: Recipe[] = [
       {
         id: 'ing_lomo_6',
         item: 6,
+        grupoInventario: 'e', // Economato
         ingrediente: 'Café colombiano expreso fuerte',
         miseEnPlace: 'Recién extraído sin azúcar',
         unidad: 'ml',
@@ -265,6 +285,7 @@ export const DEFAULT_RECIPES: Recipe[] = [
       {
         id: 'ing_lomo_7',
         item: 7,
+        grupoInventario: 'L', // Lácteos
         ingrediente: 'Mantequilla sin sal',
         miseEnPlace: 'En cubos fríos para montar la salsa en el passe',
         unidad: 'g',
@@ -272,6 +293,7 @@ export const DEFAULT_RECIPES: Recipe[] = [
         valorUnidadMinima: 22,
       },
     ],
+    margenErrorPorcentaje: 10,
     mermaPorcentaje: 18,
     porcentajeCosto: 32,
     impoconsumoActivo: true,

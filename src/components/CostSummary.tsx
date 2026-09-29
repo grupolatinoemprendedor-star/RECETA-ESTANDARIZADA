@@ -12,11 +12,13 @@ import {
   HelpCircle,
   Coins,
   CheckCircle2,
+  ShieldAlert,
 } from 'lucide-react';
 
 interface CostSummaryProps {
   calculations: RecipeCalculations;
   pax: number;
+  margenErrorPorcentaje?: number;
   mermaPorcentaje: number;
   porcentajeCosto: number;
   impoconsumoActivo: boolean;
@@ -25,6 +27,7 @@ interface CostSummaryProps {
   metodoRedondeo?: RoundingMethod;
   isEditMode: boolean;
   onUpdateRecipe: (fields: {
+    margenErrorPorcentaje?: number;
     mermaPorcentaje?: number;
     porcentajeCosto?: number;
     impoconsumoActivo?: boolean;
@@ -37,6 +40,7 @@ interface CostSummaryProps {
 export const CostSummary: React.FC<CostSummaryProps> = ({
   calculations,
   pax,
+  margenErrorPorcentaje = 10,
   mermaPorcentaje,
   porcentajeCosto,
   impoconsumoActivo,
@@ -61,93 +65,160 @@ export const CostSummary: React.FC<CostSummaryProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-6">
-        {/* Card 1: Costo Base Materia Prima - 100% Centrado en altura y ancho */}
-        <div className="bg-[#FAF8F5] border border-[#E4DDD1] rounded-xl p-5 flex flex-col justify-between text-center min-h-[220px]">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+        {/* Card 1: Costo Base Materia Prima - Centrado */}
+        <div className="bg-[#FAF8F5] border border-[#E4DDD1] rounded-xl p-4 flex flex-col justify-between text-center min-h-[220px]">
           {/* Header */}
           <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[#666F64] uppercase tracking-wider">
             <PieChart className="w-4 h-4 text-[#8C7A5B]" />
-            <span>Costo Total Materia Prima</span>
+            <span>Costo Materia Prima</span>
           </div>
 
           {/* Núcleo de información centrado exactamente en altura y ancho */}
-          <div className="my-auto py-3 flex flex-col items-center justify-center">
-            <div className="font-mono text-3xl sm:text-4xl font-extrabold text-[#1C1E21] tracking-tight">
+          <div className="my-auto py-2 flex flex-col items-center justify-center">
+            <div className="font-mono text-2xl sm:text-3xl font-extrabold text-[#1C1E21] tracking-tight">
               {formatCurrency(calculations.costoMateriaPrimaTotal)}
             </div>
-            <div className="text-sm text-stone-600 mt-2.5 font-mono bg-white border border-[#DDD5C7] px-3.5 py-1 rounded-full shadow-2xs">
+            <div className="text-xs text-stone-600 mt-2 font-mono bg-white border border-[#DDD5C7] px-3 py-1 rounded-full shadow-2xs">
               Por 1 PAX: <strong className="text-stone-900 font-bold">{formatCurrency(calculations.costoMateriaPrimaPorPax)}</strong>
             </div>
           </div>
 
           {/* Footer */}
-          <div className="pt-3 border-t border-[#EDE6DC] text-xs text-stone-500 text-center">
-            Suma neta de los {calculations.ingredientesCalculados.length} ingredientes estándar.
+          <div className="pt-2.5 border-t border-[#EDE6DC] text-[11px] text-stone-500 text-center">
+            Suma neta ({calculations.ingredientesCalculados.length} ingredientes).
           </div>
         </div>
 
-        {/* Card 2: Merma de Producción / Cocción - 100% Centrado en altura y ancho */}
-        <div className="bg-[#FAF8F5] border border-[#E4DDD1] rounded-xl p-5 flex flex-col justify-between text-center min-h-[220px]">
+        {/* Card 2: Margen de Error (10% Gastronómico) - Centrado */}
+        <div className="bg-[#FAF8F5] border border-[#E4DDD1] rounded-xl p-4 flex flex-col justify-between text-center min-h-[220px]">
           {/* Header */}
           <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[#666F64] uppercase tracking-wider">
-            <Scale className="w-4 h-4 text-[#8C7A5B]" />
-            <span>Merma de Producción / Cocción</span>
+            <ShieldAlert className="w-4 h-4 text-[#8C7A5B]" />
+            <span>Margen de Error</span>
           </div>
 
           {/* Núcleo de información centrado exactamente en altura y ancho */}
-          <div className="my-auto py-3 flex flex-col sm:flex-row items-center justify-center gap-5">
-            {/* Input % Merma centrado */}
-            <div className="flex flex-col items-center justify-center">
-              <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wide mb-1 font-mono">
-                % Merma
-              </span>
-              {isEditMode ? (
-                <div className="flex items-center border border-[#DDD5C7] rounded-lg bg-white px-3 py-1.5 shadow-2xs">
-                  <input
-                    type="number"
-                    min="0"
-                    max="99"
-                    step="0.5"
-                    value={mermaPorcentaje}
-                    onChange={(e) => {
-                      const v = parseFloat(e.target.value);
-                      onUpdateRecipe({ mermaPorcentaje: isNaN(v) ? 0 : v });
-                    }}
-                    className="w-16 text-center font-mono text-2xl font-extrabold text-[#1C1E21] outline-hidden"
-                  />
-                  <span className="font-mono text-base text-stone-500 font-bold ml-1">%</span>
-                </div>
-              ) : (
-                <span className="px-3.5 py-1.5 bg-[#ECE6DC] text-[#2C332D] font-mono text-lg font-bold rounded-lg">
-                  {mermaPorcentaje}%
+          <div className="my-auto py-2 flex flex-col items-center justify-center">
+            <div className="flex items-center justify-center gap-3">
+              {/* Input % Margen de Error */}
+              <div className="flex flex-col items-center justify-center">
+                <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wide mb-1 font-mono">
+                  % Error
                 </span>
-              )}
+                {isEditMode ? (
+                  <div className="flex items-center border border-[#DDD5C7] rounded-lg bg-white px-2 py-1 shadow-2xs">
+                    <input
+                      type="number"
+                      min="0"
+                      max="50"
+                      step="1"
+                      value={margenErrorPorcentaje}
+                      onChange={(e) => {
+                        const v = parseFloat(e.target.value);
+                        onUpdateRecipe({ margenErrorPorcentaje: isNaN(v) ? 0 : v });
+                      }}
+                      className="w-12 text-center font-mono text-xl font-extrabold text-[#1C1E21] outline-hidden"
+                    />
+                    <span className="font-mono text-sm text-stone-500 font-bold ml-0.5">%</span>
+                  </div>
+                ) : (
+                  <span className="px-2.5 py-1 bg-[#ECE6DC] text-[#2C332D] font-mono text-base font-bold rounded-lg">
+                    {margenErrorPorcentaje}%
+                  </span>
+                )}
+              </div>
+
+              {/* Valor adicional del margen de error */}
+              <div className="flex flex-col items-center justify-center">
+                <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wide mb-1">
+                  + Valor Error:
+                </span>
+                <span className="font-mono text-lg font-bold text-[#8C7A5B]">
+                  +{formatCurrency(calculations.valorMargenError)}
+                </span>
+              </div>
             </div>
 
-            {/* Costo con merma resultante centrado */}
-            <div className="flex flex-col items-center justify-center">
-              <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wide mb-1">
-                Costo con Merma:
-              </span>
-              <span className="font-mono text-2xl sm:text-3xl font-extrabold text-[#1C1E21]">
-                {formatCurrency(calculations.costoConMerma)}
-              </span>
+            <div className="mt-2 text-xs text-stone-700 font-mono bg-white border border-[#DDD5C7] px-2.5 py-0.5 rounded-md">
+              Total con Error: <strong>{formatCurrency(calculations.costoConMargenError)}</strong>
             </div>
           </div>
 
           {/* Footer */}
-          <div className="pt-3 border-t border-[#EDE6DC] text-xs text-stone-500 font-mono text-center">
-            Fórmula: Costo Base ÷ (1 − {mermaPorcentaje}%)
+          <div className="pt-2.5 border-t border-[#EDE6DC] text-[11px] text-stone-500 font-mono text-center">
+            Costo Base + {margenErrorPorcentaje}% (imprevistos/degustación)
           </div>
         </div>
 
-        {/* Card 3: Margen de Utilidad y Food Cost % (100% Modificable en ambos sentidos) */}
-        <div className="bg-[#FAF8F5] border-2 border-[#8C7A5B]/50 rounded-xl p-4 flex flex-col justify-between shadow-2xs">
+        {/* Card 3: Merma de Producción / Cocción - Centrado */}
+        <div className="bg-[#FAF8F5] border border-[#E4DDD1] rounded-xl p-4 flex flex-col justify-between text-center min-h-[220px]">
+          {/* Header */}
+          <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[#666F64] uppercase tracking-wider">
+            <Scale className="w-4 h-4 text-[#8C7A5B]" />
+            <span>Merma Producción</span>
+          </div>
+
+          {/* Núcleo de información centrado exactamente en altura y ancho */}
+          <div className="my-auto py-2 flex flex-col items-center justify-center">
+            <div className="flex items-center justify-center gap-3">
+              {/* Input % Merma centrado */}
+              <div className="flex flex-col items-center justify-center">
+                <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wide mb-1 font-mono">
+                  % Merma
+                </span>
+                {isEditMode ? (
+                  <div className="flex items-center border border-[#DDD5C7] rounded-lg bg-white px-2 py-1 shadow-2xs">
+                    <input
+                      type="number"
+                      min="0"
+                      max="99"
+                      step="0.5"
+                      value={mermaPorcentaje}
+                      onChange={(e) => {
+                        const v = parseFloat(e.target.value);
+                        onUpdateRecipe({ mermaPorcentaje: isNaN(v) ? 0 : v });
+                      }}
+                      className="w-12 text-center font-mono text-xl font-extrabold text-[#1C1E21] outline-hidden"
+                    />
+                    <span className="font-mono text-sm text-stone-500 font-bold ml-0.5">%</span>
+                  </div>
+                ) : (
+                  <span className="px-2.5 py-1 bg-[#ECE6DC] text-[#2C332D] font-mono text-base font-bold rounded-lg">
+                    {mermaPorcentaje}%
+                  </span>
+                )}
+              </div>
+
+              {/* Costo con merma resultante centrado */}
+              <div className="flex flex-col items-center justify-center">
+                <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wide mb-1">
+                  Costo con Merma:
+                </span>
+                <span className="font-mono text-xl sm:text-2xl font-extrabold text-[#1C1E21]">
+                  {formatCurrency(calculations.costoConMerma)}
+                </span>
+              </div>
+            </div>
+
+            <div className="text-[11px] text-stone-500 mt-2 font-mono">
+              Por 1 PAX: <strong>{formatCurrency(calculations.costoConMermaPorPax)}</strong>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="pt-2.5 border-t border-[#EDE6DC] text-[11px] text-stone-500 font-mono text-center">
+            Fórmula: Costo con Error ÷ (1 − {mermaPorcentaje}%)
+          </div>
+        </div>
+
+        {/* Card 4: Margen de Utilidad y Food Cost % (100% Modificable en ambos sentidos) */}
+        <div className="bg-[#FAF8F5] border-2 border-[#8C7A5B]/50 rounded-xl p-4 flex flex-col justify-between shadow-2xs min-h-[220px]">
           <div>
             <div className="flex items-center justify-between text-xs font-semibold text-[#666F64] uppercase tracking-wider mb-1">
               <span className="flex items-center gap-1.5 text-[#2C332D]">
                 <TrendingUp className="w-4 h-4 text-[#8C7A5B]" />
-                <strong>Margen de Utilidad y Food Cost</strong>
+                <strong>Margen y Food Cost</strong>
               </span>
               <span className="text-[10px] font-mono text-[#8C7A5B] bg-[#EFEBE4] px-1.5 py-0.5 rounded font-bold">
                 Modificable
@@ -155,14 +226,14 @@ export const CostSummary: React.FC<CostSummaryProps> = ({
             </div>
 
             {/* Dual Synchronized Inputs: Margen de Utilidad y % Food Cost */}
-            <div className="grid grid-cols-2 gap-2 mt-2.5">
+            <div className="grid grid-cols-2 gap-2 mt-2">
               {/* Margen de Utilidad Bruta */}
-              <div className="bg-white border border-[#DDD5C7] rounded-lg p-2.5 shadow-2xs">
-                <label className="text-[10px] font-bold text-[#8C7A5B] uppercase block">
-                  % Utilidad / Margen
+              <div className="bg-white border border-[#DDD5C7] rounded-lg p-2 shadow-2xs">
+                <label className="text-[9px] font-bold text-[#8C7A5B] uppercase block">
+                  % Utilidad
                 </label>
                 {isEditMode ? (
-                  <div className="flex items-center mt-1">
+                  <div className="flex items-center mt-0.5">
                     <input
                       type="number"
                       min="0"
@@ -176,28 +247,28 @@ export const CostSummary: React.FC<CostSummaryProps> = ({
                           onUpdateRecipe({ porcentajeCosto: Math.round(100 - safeMargin) });
                         }
                       }}
-                      className="w-full font-mono text-xl font-extrabold text-[#1C1E21] outline-hidden"
+                      className="w-full font-mono text-lg font-extrabold text-[#1C1E21] outline-hidden"
                       title="Porcentaje de utilidad bruta sobre el precio base"
                     />
-                    <span className="font-mono text-sm font-bold text-[#8C7A5B] ml-1">%</span>
+                    <span className="font-mono text-xs font-bold text-[#8C7A5B] ml-0.5">%</span>
                   </div>
                 ) : (
-                  <span className="font-mono text-lg font-bold text-[#1C1E21] block mt-1">
+                  <span className="font-mono text-base font-bold text-[#1C1E21] block mt-0.5">
                     {Math.round(100 - porcentajeCosto)}%
                   </span>
                 )}
-                <span className="text-[9px] text-stone-400 block mt-0.5 font-mono">
-                  Ganancia deseada
+                <span className="text-[9px] text-stone-400 block font-mono">
+                  Ganancia
                 </span>
               </div>
 
               {/* Porcentaje de Costo (Food Cost) */}
-              <div className="bg-white border border-[#DDD5C7] rounded-lg p-2.5 shadow-2xs">
-                <label className="text-[10px] font-bold text-stone-600 uppercase block">
-                  % Food Cost (Costo)
+              <div className="bg-white border border-[#DDD5C7] rounded-lg p-2 shadow-2xs">
+                <label className="text-[9px] font-bold text-stone-600 uppercase block">
+                  % Food Cost
                 </label>
                 {isEditMode ? (
-                  <div className="flex items-center mt-1">
+                  <div className="flex items-center mt-0.5">
                     <input
                       type="number"
                       min="5"
@@ -211,37 +282,36 @@ export const CostSummary: React.FC<CostSummaryProps> = ({
                           onUpdateRecipe({ porcentajeCosto: safeCost });
                         }
                       }}
-                      className="w-full font-mono text-xl font-extrabold text-[#1C1E21] outline-hidden"
+                      className="w-full font-mono text-lg font-extrabold text-[#1C1E21] outline-hidden"
                       title="Porcentaje de costo respecto al precio de venta base"
                     />
-                    <span className="font-mono text-sm font-bold text-stone-500 ml-1">%</span>
+                    <span className="font-mono text-xs font-bold text-stone-500 ml-0.5">%</span>
                   </div>
                 ) : (
-                  <span className="font-mono text-lg font-bold text-[#1C1E21] block mt-1">
+                  <span className="font-mono text-base font-bold text-[#1C1E21] block mt-0.5">
                     {porcentajeCosto}%
                   </span>
                 )}
-                <span className="text-[9px] text-stone-400 block mt-0.5 font-mono">
-                  100% − Utilidad
+                <span className="text-[9px] text-stone-400 block font-mono">
+                  100% − Util
                 </span>
               </div>
             </div>
 
             {/* Quick Presets Buttons for Fast Kitchen Management */}
             {isEditMode && (
-              <div className="mt-2.5 flex items-center gap-1.5 flex-wrap">
-                <span className="text-[10px] text-stone-500 font-mono">Presets rápidos:</span>
+              <div className="mt-2 flex items-center gap-1 flex-wrap">
                 {[
-                  { margin: 70, cost: 30, label: '70% Util / 30% Costo' },
-                  { margin: 65, cost: 35, label: '65% / 35%' },
-                  { margin: 60, cost: 40, label: '60% / 40%' },
-                  { margin: 75, cost: 25, label: '75% / 25%' },
+                  { margin: 70, cost: 30, label: '70/30' },
+                  { margin: 65, cost: 35, label: '65/35' },
+                  { margin: 60, cost: 40, label: '60/40' },
+                  { margin: 75, cost: 25, label: '75/25' },
                 ].map((preset) => (
                   <button
                     key={preset.cost}
                     type="button"
                     onClick={() => onUpdateRecipe({ porcentajeCosto: preset.cost })}
-                    className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded transition-colors ${
+                    className={`text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded transition-colors ${
                       porcentajeCosto === preset.cost
                         ? 'bg-[#242A24] text-[#D1BD9B] font-bold shadow-2xs'
                         : 'bg-white border border-[#DDD5C7] text-stone-600 hover:bg-[#EFEBE4]'
@@ -254,17 +324,17 @@ export const CostSummary: React.FC<CostSummaryProps> = ({
             )}
 
             {/* Base Price Result */}
-            <div className="mt-3 p-2 bg-[#EFEBE4]/60 rounded-md flex justify-between items-center">
-              <span className="text-xs text-stone-600 font-medium">Precio de Venta Base:</span>
-              <span className="font-mono text-base font-bold text-[#1C1E21]">
+            <div className="mt-2 p-1.5 bg-[#EFEBE4]/60 rounded-md flex justify-between items-center text-xs">
+              <span className="text-stone-600 font-medium">Precio Base:</span>
+              <span className="font-mono font-bold text-[#1C1E21]">
                 {formatCurrency(calculations.precioVenta)}
               </span>
             </div>
           </div>
 
-          <div className="mt-3 pt-2.5 border-t border-[#EDE6DC] text-[11px] text-stone-500 font-mono flex justify-between items-center">
-            <span>Fórmula: Costo Merma ÷ ({porcentajeCosto}% ÷ 100)</span>
-            <span className="text-[#8C7A5B] font-bold">Total: {porcentajeCosto + (100 - porcentajeCosto)}%</span>
+          <div className="mt-2 pt-2 border-t border-[#EDE6DC] text-[10px] text-stone-500 font-mono flex justify-between items-center">
+            <span>Fórmula: Costo ÷ ({porcentajeCosto}%)</span>
+            <span className="text-[#8C7A5B] font-bold">100%</span>
           </div>
         </div>
       </div>

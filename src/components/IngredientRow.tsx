@@ -1,7 +1,13 @@
 import React from 'react';
-import { IngredientItem, CalculatedIngredient, StandardUnit } from '../types/recipe';
+import {
+  IngredientItem,
+  CalculatedIngredient,
+  StandardUnit,
+  GrupoInventario,
+  GRUPO_INVENTARIO_CONFIG,
+} from '../types/recipe';
 import { formatCurrency, formatQuantity, getUnitConversionFactor } from '../utils/calculations';
-import { Trash2, ArrowUp, ArrowDown, AlertCircle } from 'lucide-react';
+import { Trash2, ArrowUp, ArrowDown, AlertCircle, ChevronDown } from 'lucide-react';
 
 interface IngredientRowProps {
   item: IngredientItem;
@@ -14,6 +20,14 @@ interface IngredientRowProps {
   onMoveUp: () => void;
   onMoveDown: () => void;
 }
+
+const GI_OPTIONS: { value: GrupoInventario; short: string; label: string }[] = [
+  { value: 'f', short: 'F', label: 'F · Fruver' },
+  { value: 'c', short: 'C', label: 'C · Cárnicos' },
+  { value: 'L', short: 'L', label: 'L · Lácteos' },
+  { value: 'e', short: 'E', label: 'E · Economato' },
+  { value: 's', short: 'S', label: 'S · Suministros' },
+];
 
 const UNIT_OPTIONS: { value: StandardUnit; label: string }[] = [
   { value: 'g', label: 'g (gramos)' },
@@ -77,7 +91,61 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
         </div>
       </td>
 
-      {/* 2. Ingrediente */}
+      {/* 2. G.I (Grupo de Inventario: f, c, L, e, s) */}
+      <td className="py-2.5 px-2 text-center align-middle">
+        {isEditMode ? (
+          <div className="relative inline-block w-full max-w-[76px]">
+            {/* Visual badge displaying the letter clearly */}
+            <div
+              className={`w-full flex items-center justify-between gap-1 px-2 py-1 rounded border text-xs font-mono font-extrabold shadow-2xs transition-all ${
+                item.grupoInventario
+                  ? `${GRUPO_INVENTARIO_CONFIG[item.grupoInventario].colorBg} ${GRUPO_INVENTARIO_CONFIG[item.grupoInventario].colorText} ${GRUPO_INVENTARIO_CONFIG[item.grupoInventario].colorBorder}`
+                  : 'bg-white border-[#DDD5C7] text-stone-500'
+              }`}
+            >
+              <span className="text-sm tracking-wide">
+                {item.grupoInventario ? GRUPO_INVENTARIO_CONFIG[item.grupoInventario].label : '—'}
+              </span>
+              <ChevronDown className="w-3 h-3 opacity-60 shrink-0" />
+            </div>
+
+            {/* Transparent overlay select capturing all clicks and touch events cleanly */}
+            <select
+              value={item.grupoInventario || ''}
+              onChange={(e) =>
+                onUpdate({
+                  grupoInventario: (e.target.value as GrupoInventario) || undefined,
+                })
+              }
+              title="Grupo de Inventario: F (Fruver), C (Cárnicos), L (Lácteos), E (Economato), S (Suministros)"
+              aria-label="Seleccionar Grupo de Inventario"
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer text-xs"
+            >
+              <option value="">— Ninguno (—) —</option>
+              {GI_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : item.grupoInventario ? (
+          <span
+            className={`inline-flex items-center justify-center font-mono font-extrabold text-xs px-2.5 py-0.5 rounded border shadow-2xs ${
+              GRUPO_INVENTARIO_CONFIG[item.grupoInventario].colorBg
+            } ${GRUPO_INVENTARIO_CONFIG[item.grupoInventario].colorText} ${
+              GRUPO_INVENTARIO_CONFIG[item.grupoInventario].colorBorder
+            }`}
+            title={`${GRUPO_INVENTARIO_CONFIG[item.grupoInventario].nombre} (${item.grupoInventario})`}
+          >
+            {GRUPO_INVENTARIO_CONFIG[item.grupoInventario].label}
+          </span>
+        ) : (
+          <span className="text-stone-300 text-xs font-mono">—</span>
+        )}
+      </td>
+
+      {/* 3. Ingrediente */}
       <td className="py-2.5 px-3 align-middle">
         {isEditMode ? (
           <div>

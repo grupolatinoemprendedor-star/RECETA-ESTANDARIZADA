@@ -80,6 +80,7 @@ export function exportRecipeAsCSV(recipe: Recipe): void {
     [''],
     [
       'ITEM',
+      'G.I (GRUPO INVENTARIO)',
       'INGREDIENTE',
       'MISE EN PLACE',
       'UNIDAD',
@@ -94,6 +95,7 @@ export function exportRecipeAsCSV(recipe: Recipe): void {
   calcs.ingredientesCalculados.forEach((item) => {
     rows.push([
       `#${String(item.item).padStart(2, '0')}`,
+      item.grupoInventario ? item.grupoInventario.toUpperCase() : '',
       `"${(item.ingrediente || '').replace(/"/g, '""')}"`,
       `"${(item.miseEnPlace || '').replace(/"/g, '""')}"`,
       item.unidad,
@@ -109,6 +111,9 @@ export function exportRecipeAsCSV(recipe: Recipe): void {
   rows.push(['RESUMEN DE COSTEO']);
   rows.push(['Costo Total de Materia Prima:', formatCurrency(calcs.costoMateriaPrimaTotal)]);
   rows.push(['Costo Materia Prima x 1 PAX:', formatCurrency(calcs.costoMateriaPrimaPorPax)]);
+  rows.push([`% Margen de Error:`, `${calcs.margenErrorPorcentaje}%`]);
+  rows.push([`Valor Margen de Error:`, formatCurrency(calcs.valorMargenError)]);
+  rows.push([`Costo con Margen de Error:`, formatCurrency(calcs.costoConMargenError)]);
   rows.push(['% Merma de Producción / Cocción:', `${calcs.mermaPorcentaje}%`]);
   rows.push(['Costo con Merma:', formatCurrency(calcs.costoConMerma)]);
   rows.push(['% de Costo (Food Cost):', `${calcs.porcentajeCosto}%`]);

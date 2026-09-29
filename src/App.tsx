@@ -385,6 +385,7 @@ export default function App() {
             <CostSummary
               calculations={calculations}
               pax={currentRecipe.pax}
+              margenErrorPorcentaje={currentRecipe.margenErrorPorcentaje !== undefined ? currentRecipe.margenErrorPorcentaje : 10}
               mermaPorcentaje={currentRecipe.mermaPorcentaje}
               porcentajeCosto={currentRecipe.porcentajeCosto}
               impoconsumoActivo={currentRecipe.impoconsumoActivo}

@@ -69,6 +69,9 @@ export const IngredientTable: React.FC<IngredientTableProps> = ({
           <thead>
             <tr className="bg-[#242A24] text-[#EFEBE4] text-[11px] font-bold uppercase tracking-wider">
               <th className="py-3 px-3 text-center w-16">ITEMS</th>
+              <th className="py-3 px-2 text-center w-20" title="Grupo de Inventario (f=Fruver, c=Cárnicos, L=Lácteos, e=Economato, s=Suministros)">
+                G.I
+              </th>
               <th className="py-3 px-3 w-56">INGREDIENTES</th>
               <th className="py-3 px-3 w-56">MISE EN PLACE INGREDIENTE</th>
               <th className="py-3 px-3 text-center w-28">UNIDAD DE MEDIDA</th>
@@ -90,7 +93,7 @@ export const IngredientTable: React.FC<IngredientTableProps> = ({
             {ingredients.length === 0 ? (
               <tr>
                 <td
-                  colSpan={isEditMode ? 10 : 9}
+                  colSpan={isEditMode ? 11 : 10}
                   className="py-8 text-center text-stone-400 text-xs italic"
                 >
                   No hay ingredientes registrados. Pulsa en "+ AGREGAR INGREDIENTE" para comenzar.
@@ -130,7 +133,7 @@ export const IngredientTable: React.FC<IngredientTableProps> = ({
           </tbody>
           <tfoot>
             <tr className="bg-[#ECE6DC] font-bold text-xs text-[#1C1E21] border-t-2 border-[#DDD5C7]">
-              <td colSpan={4} className="py-3 px-3 text-right uppercase tracking-wider font-mono">
+              <td colSpan={5} className="py-3 px-3 text-right uppercase tracking-wider font-mono">
                 SUBTOTAL MATERIA PRIMA ({ingredients.length} ITEMS):
               </td>
               <td className="py-3 px-3 text-right font-mono text-[#666F64]">

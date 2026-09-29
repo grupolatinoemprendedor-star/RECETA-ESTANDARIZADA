@@ -122,8 +122,26 @@ export function calculateRawMaterialCost(ingredients: CalculatedIngredient[]): n
 }
 
 /**
+ * Calculates cost with margin of error (standard 10% in culinary cost analysis to account for spills, condiments, tastings):
+ * VALOR MARGEN ERROR = COSTO BASE × (% ERROR / 100)
+ * COSTO CON MARGEN ERROR = COSTO BASE + VALOR MARGEN ERROR = COSTO BASE × (1 + % ERROR / 100)
+ */
+export function calculateCostWithMargenError(rawCost: number, margenErrorPercent: number): {
+  costoConMargenError: number;
+  valorMargenError: number;
+} {
+  if (rawCost <= 0 || isNaN(rawCost)) {
+    return { costoConMargenError: 0, valorMargenError: 0 };
+  }
+  const safePercent = Math.max(0, margenErrorPercent || 0);
+  const valorMargenError = Number((rawCost * (safePercent / 100)).toFixed(4));
+  const costoConMargenError = Number((rawCost + valorMargenError).toFixed(4));
+  return { costoConMargenError, valorMargenError };
+}
+
+/**
  * Calculates cost with waste:
- * COSTO CON MERMA = COSTO BASE ÷ (1 − % MERMA)
+ * COSTO CON MERMA = COSTO (CON MARGEN ERROR) ÷ (1 − % MERMA)
  */
 export function calculateCostWithWaste(rawCost: number, wastePercentage: number): number {
   if (rawCost <= 0 || isNaN(rawCost)) return 0;
@@ -199,6 +217,7 @@ export function calculateRecipeTotals(recipe: Recipe): RecipeCalculations {
 
     return {
       item: index + 1,
+      grupoInventario: item.grupoInventario,
       ingrediente: item.ingrediente || '',
       miseEnPlace: item.miseEnPlace || '',
       unidad: unit,
@@ -215,8 +234,15 @@ export function calculateRecipeTotals(recipe: Recipe): RecipeCalculations {
   const costoMateriaPrimaTotal = calculateRawMaterialCost(ingredientesCalculados);
   const costoMateriaPrimaPorPax = safePax > 0 ? costoMateriaPrimaTotal / safePax : 0;
 
+  // Margen de Error (10% estándar gastronómico: condimentos menores, derrames, degustación técnica)
+  const margenErrorPorcentaje = recipe.margenErrorPorcentaje !== undefined ? Math.max(0, Number(recipe.margenErrorPorcentaje)) : 10;
+  const { costoConMargenError, valorMargenError } = calculateCostWithMargenError(costoMateriaPrimaTotal, margenErrorPorcentaje);
+  const costoConMargenErrorPorPax = safePax > 0 ? costoConMargenError / safePax : 0;
+  const valorMargenErrorPorPax = safePax > 0 ? valorMargenError / safePax : 0;
+
   const mermaPorcentaje = Math.min(99.9, Math.max(0, Number(recipe.mermaPorcentaje) || 0));
-  const costoConMerma = calculateCostWithWaste(costoMateriaPrimaTotal, mermaPorcentaje);
+  // El costo con merma se calcula sobre el costo que ya incluye el margen de error
+  const costoConMerma = calculateCostWithWaste(costoConMargenError, mermaPorcentaje);
   const costoConMermaPorPax = safePax > 0 ? costoConMerma / safePax : 0;
 
   const porcentajeCosto = Math.min(100, Math.max(1, Number(recipe.porcentajeCosto) || 30));
@@ -250,6 +276,11 @@ export function calculateRecipeTotals(recipe: Recipe): RecipeCalculations {
     ingredientesCalculados,
     costoMateriaPrimaTotal,
     costoMateriaPrimaPorPax,
+    margenErrorPorcentaje,
+    costoConMargenError,
+    costoConMargenErrorPorPax,
+    valorMargenError,
+    valorMargenErrorPorPax,
     mermaPorcentaje,
     costoConMerma,
     costoConMermaPorPax,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Recipe, RecipeCalculations } from '../types/recipe';
+import { Recipe, RecipeCalculations, GRUPO_INVENTARIO_CONFIG } from '../types/recipe';
 import { formatCurrency, formatQuantity } from '../utils/calculations';
 import { Calendar, User, Building2, Users, Printer, Edit3, Clock, Thermometer, FileDown } from 'lucide-react';
 
@@ -161,6 +161,9 @@ export const RecipeSheetView: React.FC<RecipeSheetViewProps> = ({
               <thead>
                 <tr className="bg-[#242A24] text-white text-[10px] font-bold uppercase tracking-wider">
                   <th className="py-2.5 px-2 text-center border border-stone-700 w-12">ITEMS</th>
+                  <th className="py-2.5 px-2 text-center border border-stone-700 w-12" title="Grupo de Inventario">
+                    G.I
+                  </th>
                   <th className="py-2.5 px-3 border border-stone-700">INGREDIENTES</th>
                   <th className="py-2.5 px-3 border border-stone-700">MISE EN PLACE INGREDIENTE</th>
                   <th className="py-2.5 px-2 text-center border border-stone-700 w-24">UNIDAD</th>
@@ -185,6 +188,22 @@ export const RecipeSheetView: React.FC<RecipeSheetViewProps> = ({
                   >
                     <td className="py-2 px-2 text-center font-mono font-bold text-stone-600 border border-[#E8E2D5]">
                       #{String(item.item).padStart(2, '0')}
+                    </td>
+                    <td className="py-2 px-1 text-center border border-[#E8E2D5]">
+                      {item.grupoInventario ? (
+                        <span
+                          className={`inline-block font-mono font-bold text-[11px] px-1.5 py-0.5 rounded border ${
+                            GRUPO_INVENTARIO_CONFIG[item.grupoInventario].colorBg
+                          } ${GRUPO_INVENTARIO_CONFIG[item.grupoInventario].colorText} ${
+                            GRUPO_INVENTARIO_CONFIG[item.grupoInventario].colorBorder
+                          }`}
+                          title={`${GRUPO_INVENTARIO_CONFIG[item.grupoInventario].nombre} (${item.grupoInventario})`}
+                        >
+                          {GRUPO_INVENTARIO_CONFIG[item.grupoInventario].label}
+                        </span>
+                      ) : (
+                        <span className="text-stone-300 font-mono text-[11px]">—</span>
+                      )}
                     </td>
                     <td className="py-2 px-3 font-semibold text-[#1C1E21] border border-[#E8E2D5]">
                       {item.ingrediente || '—'}
@@ -215,7 +234,7 @@ export const RecipeSheetView: React.FC<RecipeSheetViewProps> = ({
               </tbody>
               <tfoot>
                 <tr className="bg-[#EFEBE4] font-mono text-xs font-bold text-[#1C1E21] border-t-2 border-[#1C1E21]">
-                  <td colSpan={4} className="py-2.5 px-3 text-right uppercase border border-[#DDD5C7]">
+                  <td colSpan={5} className="py-2.5 px-3 text-right uppercase border border-[#DDD5C7]">
                     COSTO TOTAL DE MATERIA PRIMA ({calculations.ingredientesCalculados.length} ITEMS):
                   </td>
                   <td className="py-2.5 px-2 text-right border border-[#DDD5C7] text-stone-400">—</td>
@@ -255,13 +274,21 @@ export const RecipeSheetView: React.FC<RecipeSheetViewProps> = ({
                   </tr>
                   <tr className="bg-[#FAF8F5]">
                     <td className="py-2 px-3 font-medium text-stone-600">
+                      + Margen de Error ({calculations.margenErrorPorcentaje}%):
+                    </td>
+                    <td className="py-2 px-3 text-right font-mono text-stone-700">
+                      +{formatCurrency(calculations.valorMargenError)} (Total: {formatCurrency(calculations.costoConMargenError)})
+                    </td>
+                  </tr>
+                  <tr className="bg-white">
+                    <td className="py-2 px-3 font-medium text-stone-600">
                       Merma de Producción / Cocción ({calculations.mermaPorcentaje}%):
                     </td>
                     <td className="py-2 px-3 text-right font-mono text-stone-700">
                       {calculations.mermaPorcentaje}% (Factor: 1 − {(calculations.mermaPorcentaje / 100).toFixed(2)})
                     </td>
                   </tr>
-                  <tr className="bg-white">
+                  <tr className="bg-[#FAF8F5]">
                     <td className="py-2 px-3 font-semibold text-stone-800">Costo con Merma:</td>
                     <td className="py-2 px-3 text-right font-mono font-bold text-stone-900">
                       {formatCurrency(calculations.costoConMerma)}
