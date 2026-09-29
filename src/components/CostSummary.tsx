@@ -306,10 +306,12 @@ export const CostSummary: React.FC<CostSummaryProps> = ({
                   { margin: 65, cost: 35, label: '65/35' },
                   { margin: 60, cost: 40, label: '60/40' },
                   { margin: 75, cost: 25, label: '75/25' },
+                  { margin: 30, cost: 70, label: '30/70 (30% Util / 70% Costo)' },
                 ].map((preset) => (
                   <button
                     key={preset.cost}
                     type="button"
+                    title={`Utilidad: ${preset.margin}% · Food Cost: ${preset.cost}%`}
                     onClick={() => onUpdateRecipe({ porcentajeCosto: preset.cost })}
                     className={`text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded transition-colors ${
                       porcentajeCosto === preset.cost
