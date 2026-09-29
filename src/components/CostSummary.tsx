@@ -302,12 +302,12 @@ export const CostSummary: React.FC<CostSummaryProps> = ({
             {isEditMode && (
               <div className="mt-2 flex items-center gap-1 flex-wrap">
                 {[
+                  { margin: 80, cost: 20, label: '80/20' },
                   { margin: 75, cost: 25, label: '75/25' },
                   { margin: 70, cost: 30, label: '70/30' },
                   { margin: 65, cost: 35, label: '65/35' },
                   { margin: 60, cost: 40, label: '60/40' },
-                  { margin: 40, cost: 60, label: '40/60' },
-                  { margin: 30, cost: 70, label: '30/70' },
+                  { margin: 50, cost: 50, label: '50/50' },
                 ].map((preset) => (
                   <button
                     key={preset.cost}
