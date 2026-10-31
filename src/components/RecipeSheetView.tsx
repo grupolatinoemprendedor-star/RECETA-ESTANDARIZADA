@@ -1,6 +1,6 @@
 import React from 'react';
 import { Recipe, RecipeCalculations, GRUPO_INVENTARIO_CONFIG } from '../types/recipe';
-import { formatCurrency, formatQuantity } from '../utils/calculations';
+import { formatCurrency, formatQuantity, getRecipeProcedure } from '../utils/calculations';
 import { Calendar, User, Building2, Users, Printer, Edit3, Clock, Thermometer, FileDown } from 'lucide-react';
 
 interface RecipeSheetViewProps {
@@ -378,24 +378,54 @@ export const RecipeSheetView: React.FC<RecipeSheetViewProps> = ({
           </div>
 
           <div className="space-y-3">
-            {recipe.pasos.map((step, idx) => (
-              <div
-                key={step.id || idx}
-                className="avoid-break bg-[#FAF8F5] border border-[#E8E2D5] rounded-lg p-3 text-xs flex items-start gap-3"
-              >
-                <div className="w-6 h-6 rounded-full bg-[#242A24] text-white font-mono font-bold text-[11px] flex items-center justify-center shrink-0">
-                  {idx + 1}
-                </div>
-                <div className="flex-1">
-                  <div className="font-bold text-[#1C1E21] uppercase text-[11px] mb-0.5 font-editorial">
-                    Paso {idx + 1}
+            {(() => {
+              const procText = getRecipeProcedure(recipe);
+              const paragraphs = procText
+                .split(/\r?\n/)
+                .map((l) => l.trim())
+                .filter((l) => l.length > 0);
+
+              if (paragraphs.length === 0) {
+                return (
+                  <div className="p-4 bg-[#FAF8F5] border border-dashed border-[#DDD5C7] rounded-lg text-center text-xs text-stone-400 italic">
+                    Sin procedimiento registrado en la ficha técnica.
                   </div>
-                  <p className="text-stone-700 leading-relaxed whitespace-pre-line">
-                    {step.descripcion || <span className="text-stone-300 italic">Sin descripción registrada</span>}
-                  </p>
-                </div>
-              </div>
-            ))}
+                );
+              }
+
+              return paragraphs.map((line, idx) => {
+                const match = line.match(/^(\d+)[\.\-\)]\s+(.*)$/);
+                const isNumbered = !!match;
+                const stepNum = match ? match[1] : (idx + 1).toString();
+                const textContent = match ? match[2] : line;
+
+                return (
+                  <div
+                    key={idx}
+                    className="avoid-break bg-[#FAF8F5] border border-[#E8E2D5] rounded-lg p-3 sm:p-3.5 text-xs flex items-start gap-3"
+                  >
+                    {isNumbered ? (
+                      <div className="w-6 h-6 rounded-full bg-[#242A24] text-white font-mono font-bold text-[11px] flex items-center justify-center shrink-0 shadow-2xs mt-0.5">
+                        {stepNum}
+                      </div>
+                    ) : (
+                      <div className="w-2 h-2 rounded-full bg-[#8C7A5B] shrink-0 mt-1.5 ml-2" />
+                    )}
+
+                    <div className="flex-1">
+                      {isNumbered && (
+                        <div className="font-bold text-[#8C7A5B] uppercase text-[10px] font-mono tracking-wider mb-0.5">
+                          Paso {stepNum}
+                        </div>
+                      )}
+                      <p className="text-stone-800 leading-relaxed whitespace-pre-line text-xs sm:text-[13px]">
+                        {textContent}
+                      </p>
+                    </div>
+                  </div>
+                );
+              });
+            })()}
           </div>
         </section>
 

@@ -9,7 +9,7 @@ import {
   exportRecipeAsCSV,
   exportRecipeAsJSON,
 } from './services/storage';
-import { calculateRecipeTotals } from './utils/calculations';
+import { calculateRecipeTotals, procedureTextToSteps } from './utils/calculations';
 import { Navbar } from './components/Navbar';
 import { RecipeHeader } from './components/RecipeHeader';
 import { IngredientTable } from './components/IngredientTable';
@@ -131,7 +131,15 @@ export default function App() {
     updateCurrentRecipe({ ingredientes: renumbered });
   };
 
-  // Step handlers
+  // Step & Procedure handlers
+  const handleUpdateProcedimiento = (text: string) => {
+    const steps = procedureTextToSteps(text);
+    updateCurrentRecipe({
+      procedimiento: text,
+      pasos: steps,
+    });
+  };
+
   const handleAddStep = () => {
     const currentSteps = currentRecipe.pasos || [];
     const newStep = {
@@ -139,7 +147,9 @@ export default function App() {
       numero: currentSteps.length + 1,
       descripcion: '',
     };
-    updateCurrentRecipe({ pasos: [...currentSteps, newStep] });
+    const newSteps = [...currentSteps, newStep];
+    const newText = newSteps.map((s) => `${s.numero}. ${s.descripcion}`).join('\n\n');
+    updateCurrentRecipe({ pasos: newSteps, procedimiento: newText });
   };
 
   const handleUpdateStep = (id: string, descripcion: string) => {
@@ -398,12 +408,10 @@ export default function App() {
 
             {/* Paso a Paso de Técnica Aplicada */}
             <ProcedureSection
+              procedimiento={currentRecipe.procedimiento}
               steps={currentRecipe.pasos}
               isEditMode={true}
-              onAddStep={handleAddStep}
-              onUpdateStep={handleUpdateStep}
-              onRemoveStep={handleRemoveStep}
-              onMoveStep={handleMoveStep}
+              onChangeProcedimiento={handleUpdateProcedimiento}
             />
           </div>
         ) : (

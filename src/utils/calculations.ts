@@ -334,3 +334,45 @@ export function formatQuantity(value: number, maxDecimals = 2): string {
     maximumFractionDigits: isWhole ? 0 : maxDecimals,
   }).format(value);
 }
+
+/**
+ * Converts unified procedure text into structured CulinaryStep items
+ */
+export function procedureTextToSteps(text: string): { id: string; numero: number; descripcion: string }[] {
+  if (!text || !text.trim()) return [];
+  const lines = text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  return lines.map((line, idx) => ({
+    id: `step_${idx + 1}_${Math.random().toString(36).substring(2, 7)}`,
+    numero: idx + 1,
+    descripcion: line,
+  }));
+}
+
+/**
+ * Gets unified procedure text from a recipe, falling back to pasos if procedimiento is not yet set
+ */
+export function getRecipeProcedure(recipe: {
+  procedimiento?: string;
+  pasos?: { numero: number; descripcion: string }[];
+}): string {
+  if (recipe.procedimiento !== undefined && recipe.procedimiento !== null) {
+    return recipe.procedimiento;
+  }
+  if (recipe.pasos && recipe.pasos.length > 0) {
+    return recipe.pasos
+      .map((p, idx) => {
+        const desc = (p.descripcion || '').trim();
+        if (!desc) return '';
+        if (/^\d+[\.\-\)]\s*/.test(desc)) return desc;
+        return `${p.numero || idx + 1}. ${desc}`;
+      })
+      .filter(Boolean)
+      .join('\n\n');
+  }
+  return '';
+}
+

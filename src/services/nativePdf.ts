@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Recipe, RecipeCalculations } from '../types/recipe';
-import { formatCurrency, formatQuantity } from '../utils/calculations';
+import { formatCurrency, formatQuantity, getRecipeProcedure } from '../utils/calculations';
 
 /**
  * Generates a clean, professional, publication-ready PDF Ficha Técnica
@@ -292,31 +292,48 @@ export function generateNativeRecipePDF(recipe: Recipe, calculations: RecipeCalc
     doc.setFontSize(9);
     doc.text('3. PASO A PASO DE TÉCNICA APLICADA (PROCEDIMIENTO CULINARIO)', margin, currentY);
 
-    currentY += 4;
+    currentY += 4.5;
 
-    recipe.pasos.forEach((paso) => {
-      // Split description text to fit within column
-      const stepNum = `${paso.numero}.`;
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7.5);
-      doc.setTextColor(140, 122, 91);
-      doc.text(stepNum, margin + 2, currentY);
+    const procedureText = getRecipeProcedure(recipe);
+    const pdfParagraphs = procedureText
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
 
-      doc.setFont('helvetica', 'normal');
+    if (pdfParagraphs.length === 0) {
+      doc.setFont('helvetica', 'italic');
       doc.setFontSize(7.2);
-      doc.setTextColor(40, 40, 40);
+      doc.setTextColor(120, 120, 120);
+      doc.text('Sin procedimiento registrado en la ficha técnica.', margin + 2, currentY);
+      currentY += 6;
+    } else {
+      pdfParagraphs.forEach((paragraph, idx) => {
+        const match = paragraph.match(/^(\d+)[\.\-\)]\s+(.*)$/);
+        const isNumbered = !!match;
+        const stepNum = isNumbered ? `${match[1]}.` : `•`;
+        const textContent = isNumbered ? match[2] : paragraph;
 
-      const splitLines = doc.splitTextToSize(paso.descripcion, contentWidth - 12);
-      doc.text(splitLines, margin + 10, currentY);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.5);
+        doc.setTextColor(140, 122, 91);
+        doc.text(stepNum, margin + 2, currentY);
 
-      currentY += splitLines.length * 3.8 + 2.5;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.2);
+        doc.setTextColor(40, 40, 40);
 
-      // Add page if steps overflow
-      if (currentY > 265) {
-        doc.addPage();
-        currentY = 16;
-      }
-    });
+        const splitLines = doc.splitTextToSize(textContent, contentWidth - 12);
+        doc.text(splitLines, margin + 9, currentY);
+
+        currentY += splitLines.length * 3.8 + 2.5;
+
+        // Add page if steps overflow
+        if (currentY > 265) {
+          doc.addPage();
+          currentY = 16;
+        }
+      });
+    }
 
     // Save and Trigger Automatic Download
     const cleanName = (recipe.nombre || 'receta_estandar')

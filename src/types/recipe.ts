@@ -59,6 +59,7 @@ export interface Recipe {
   redondearPrecios?: boolean; // Redondear a precio cerrado comercial
   metodoRedondeo?: RoundingMethod; // e.g. 'centena' ($100), 'mil' ($1.000), 'cincuenta' ($50), 'exacto_entero' ($1)
   pasos: CulinaryStep[];
+  procedimiento?: string; // Procedimiento técnico y paso a paso unificado (área continua autoexpandible)
   notasAdicionales?: string;
   temperaturaServicio?: string;
   tiempoPreparacion?: string;

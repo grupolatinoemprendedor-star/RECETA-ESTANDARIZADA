@@ -1,6 +1,6 @@
 import { Recipe } from '../types/recipe';
 import { DEFAULT_RECIPES } from '../data/defaultRecipes';
-import { calculateRecipeTotals, formatCurrency, formatQuantity } from '../utils/calculations';
+import { calculateRecipeTotals, formatCurrency, formatQuantity, getRecipeProcedure } from '../utils/calculations';
 
 const STORAGE_KEY_RECIPES = 'receta_estandar_recipes_v1';
 const STORAGE_KEY_ACTIVE_ID = 'receta_estandar_active_id';
@@ -124,6 +124,16 @@ export function exportRecipeAsCSV(recipe: Recipe): void {
   if (calcs.preciosRedondeados) {
     rows.push(['Precio Real Total Sin Redondear:', formatCurrency(calcs.precioRealVentaSinRedondeo)]);
     rows.push(['Precio Carta x 1 PAX Sin Redondear:', formatCurrency(calcs.precioRealVentaPorPaxSinRedondeo)]);
+  }
+
+  const procedure = getRecipeProcedure(recipe);
+  if (procedure && procedure.trim()) {
+    rows.push(['']);
+    rows.push(['PASO A PASO DE TÉCNICA APLICADA (PROCEDIMIENTO CULINARIO)']);
+    const procLines = procedure.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    procLines.forEach((line) => {
+      rows.push([`"${line.replace(/"/g, '""')}"`]);
+    });
   }
 
   const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + rows.map((e) => e.join(';')).join('\n');

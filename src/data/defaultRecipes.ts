@@ -39,6 +39,12 @@ export function createNewRecipe(): Recipe {
       { id: 'step_5', numero: 5, descripcion: 'Control térmico y reposo técnico antes de servicio.' },
       { id: 'step_6', numero: 6, descripcion: 'Montaje estándar de plato según especificaciones visuales de la ficha.' },
     ],
+    procedimiento: `1. Mise en place general: Pesaje de ingredientes, lavado y sanitización.
+2. Cortes técnicos preliminares y preparación de bases aromáticas.
+3. Cocción primaria y aplicación de técnicas térmicas.
+4. Integración de componentes, rectificación de sazón y punto de textura.
+5. Control térmico y reposo técnico antes de servicio.
+6. Montaje estándar de plato según especificaciones visuales de la ficha.`,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };
@@ -208,6 +214,17 @@ export const DEFAULT_RECIPES: Recipe[] = [
           'Reposo técnico y montaje: Apagar el fuego y dejar en reposo pasivo tapado 5 minutos para estabilizar la humedad interna del almidón. Abrir suavemente con tenedor gastronómico, agregar el cilantro fresco y montar en plato hondo precalentado a 68°C.',
       },
     ],
+    procedimiento: `1. Mise en place general: Pesar con precisión los ingredientes secos y líquidos. Lavar y sanitizar vegetales con solución clorada a 50 ppm por 5 minutos. Ejecutar los cortes técnicos especificados asegurando uniformidad para cocción homogénea.
+
+2. Tratamiento térmico de la proteína: En rondón o sartén de fondo grueso a temperatura viva, disponer la mitad del aceite achiotado. Sellar los cubos de pollo hasta lograr reacción de Maillard superficial sin sobrecocinar el núcleo. Retirar y reservar jugos.
+
+3. Construcción del sofrito criollo: En la grasa residual del sellado, agregar el aceite restante. Sofreír la cebolla cabezona y el ajo a fuego moderado (120°C) durante 6 minutos hasta traslúcidos. Añadir pimentón y zanahoria, sudar 3 minutos más.
+
+4. Nacarado y cocción del grano: Incorporar el arroz al sofrito y nacarar revolviendo suavemente durante 2 minutos hasta que los bordes del grano se tornen translúcidos. Mojar con el fondo de ave caliente y salar.
+
+5. Concentración y secado: Mantener ebullición viva destapada hasta que el caldo se absorba al nivel superficial del arroz (ojos de evaporación). Integrar las arvejas blanqueadas y los cubos de pollo sellados. Tapar herméticamente y reducir a fuego mínimo por 18 minutos.
+
+6. Reposo técnico y montaje: Apagar el fuego y dejar en reposo pasivo tapado 5 minutos para estabilizar la humedad interna del almidón. Abrir suavemente con tenedor gastronómico, agregar el cilantro fresco y montar en plato hondo precalentado a 68°C.`,
     temperaturaServicio: '65°C a 70°C en plato caliente',
     tiempoPreparacion: '45 minutos de cocción activa',
     createdAt: 1727280000000,
@@ -336,6 +353,17 @@ export const DEFAULT_RECIPES: Recipe[] = [
           'Ruptura de costra y servicio: Romper la coraza de sal quemada con maza de cocina, sacudir el exceso de sal, dejar reposar la carne 4 minutos, trinchar en medallones y napar con la salsa.',
       },
     ],
+    procedimiento: `1. Acondicionamiento del lienzo: Extender un lienzo de algodón puro 100% (sin apresto ni suavizantes). Humedecer uniformemente con el vino tinto seco.
+
+2. Construcción del lecho de sal: Esparcir una capa continua de 1 cm de sal marina gruesa mezclada con la pimienta mignonette sobre el lienzo húmedo.
+
+3. Envoltura y bridado: Colocar el lomo entero sobre la sal. Enrollar firmemente sellando los extremos como caramelo con piola de cocina para evitar fuga de vapor.
+
+4. Cocción directa al fuego o brasa: Disponer el paquete directamente sobre brasa viva de carbón de leña sin parrilla por 12 minutos por lado.
+
+5. Elaboración de la salsa: En una cacerola, reducir el café con la panela rallada a fuego suave hasta punto de jarabe ligero; montar con cubos de mantequilla fría fuera del fuego.
+
+6. Ruptura de costra y servicio: Romper la coraza de sal quemada con maza de cocina, sacudir el exceso de sal, dejar reposar la carne 4 minutos, trinchar en medallones y napar con la salsa.`,
     temperaturaServicio: '55°C en el centro (Término Medio 3/4)',
     tiempoPreparacion: '35 minutos',
     createdAt: 1727280100000,
