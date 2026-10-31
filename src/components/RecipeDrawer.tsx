@@ -13,6 +13,8 @@ import {
   Building2,
   Upload,
   CheckCircle,
+  Soup,
+  UtensilsCrossed,
 } from 'lucide-react';
 
 interface RecipeDrawerProps {
@@ -22,6 +24,7 @@ interface RecipeDrawerProps {
   activeRecipeId: string;
   onSelectRecipe: (id: string) => void;
   onNewRecipe: () => void;
+  onNewBaseRecipe?: () => void;
   onDuplicateRecipe: (id: string) => void;
   onDeleteRecipe: (id: string) => void;
   onImportRecipeJSON: (imported: Recipe) => void;
@@ -34,21 +37,37 @@ export const RecipeDrawer: React.FC<RecipeDrawerProps> = ({
   activeRecipeId,
   onSelectRecipe,
   onNewRecipe,
+  onNewBaseRecipe,
   onDuplicateRecipe,
   onDeleteRecipe,
   onImportRecipeJSON,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [activeTab, setActiveTab] = useState<'all' | 'porciones' | 'lote'>('all');
   const importInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
 
-  const filteredRecipes = recipes.filter(
-    (r) =>
+  const filteredRecipes = recipes.filter((r) => {
+    const matchesSearch =
       r.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
       r.establecimiento.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.creador.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+      r.creador.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (r.categoriaBase && r.categoriaBase.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    if (!matchesSearch) return false;
+
+    if (activeTab === 'porciones') {
+      return r.tipoReceta !== 'lote';
+    }
+    if (activeTab === 'lote') {
+      return r.tipoReceta === 'lote';
+    }
+    return true;
+  });
+
+  const porcionesCount = recipes.filter((r) => r.tipoReceta !== 'lote').length;
+  const loteCount = recipes.filter((r) => r.tipoReceta === 'lote').length;
 
   const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -58,7 +77,6 @@ export const RecipeDrawer: React.FC<RecipeDrawerProps> = ({
         try {
           const parsed = JSON.parse(event.target?.result as string);
           if (parsed && parsed.nombre && Array.isArray(parsed.ingredientes)) {
-            // Assign a new ID to prevent colliding
             parsed.id = 'receta_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
             onImportRecipeJSON(parsed as Recipe);
           } else {
@@ -90,10 +108,10 @@ export const RecipeDrawer: React.FC<RecipeDrawerProps> = ({
               </div>
               <div>
                 <h2 className="font-editorial text-xl font-bold uppercase tracking-tight text-[#1C1E21]">
-                  MIS RECETAS
+                  CATÁLOGO DE RECETAS
                 </h2>
                 <p className="text-xs text-stone-500">
-                  {recipes.length} receta{recipes.length === 1 ? '' : 's'} guardada{recipes.length === 1 ? '' : 's'} en el sistema
+                  {recipes.length} registro{recipes.length === 1 ? '' : 's'} en el sistema ({porcionesCount} platos · {loteCount} bases)
                 </p>
               </div>
             </div>
@@ -108,45 +126,99 @@ export const RecipeDrawer: React.FC<RecipeDrawerProps> = ({
           </div>
 
           {/* Action bar inside drawer */}
-          <div className="p-4 border-b border-[#E8E2D5] bg-[#F4F0E8] flex items-center gap-2">
-            <button
-              onClick={() => {
-                onNewRecipe();
-                onClose();
-              }}
-              className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-[#2E372E] text-white text-xs font-semibold hover:bg-[#1E251E] shadow-2xs transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5 text-[#D1BD9B]" />
-              <span>Nueva Receta</span>
-            </button>
+          <div className="p-3 border-b border-[#E8E2D5] bg-[#F4F0E8] flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  onNewRecipe();
+                  onClose();
+                }}
+                className="flex-1 inline-flex items-center justify-center gap-1 px-2.5 py-2 rounded-lg bg-[#2E372E] text-white text-xs font-semibold hover:bg-[#1E251E] shadow-2xs transition-colors"
+                title="Crear nueva receta con venta directa por porciones / PAX"
+              >
+                <Plus className="w-3.5 h-3.5 text-[#D1BD9B]" />
+                <span>+ Plato (Carta)</span>
+              </button>
 
-            <button
-              onClick={() => importInputRef.current?.click()}
-              className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-[#DDD5C7] bg-white text-stone-700 text-xs font-medium hover:bg-stone-50 transition-colors shadow-2xs"
-              title="Importar archivo JSON de receta estándar"
-            >
-              <Upload className="w-3.5 h-3.5 text-[#8C7A5B]" />
-              <span>Importar</span>
-            </button>
-            <input
-              ref={importInputRef}
-              type="file"
-              accept=".json,application/json"
-              onChange={handleFileImport}
-              className="hidden"
-            />
+              {onNewBaseRecipe && (
+                <button
+                  onClick={() => {
+                    onNewBaseRecipe();
+                    onClose();
+                  }}
+                  className="flex-1 inline-flex items-center justify-center gap-1 px-2.5 py-2 rounded-lg bg-[#8C7A5B] text-white text-xs font-semibold hover:bg-[#78674B] shadow-2xs transition-colors"
+                  title="Crear nueva preparación base (fondo, caldo, salsa madre) por lote y rendimiento"
+                >
+                  <Soup className="w-3.5 h-3.5 text-[#FAF8F5]" />
+                  <span>+ Base (Lote)</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => importInputRef.current?.click()}
+                className="inline-flex items-center gap-1 px-2.5 py-2 rounded-lg border border-[#DDD5C7] bg-white text-stone-700 text-xs font-medium hover:bg-stone-50 transition-colors shadow-2xs"
+                title="Importar archivo JSON"
+              >
+                <Upload className="w-3.5 h-3.5 text-[#8C7A5B]" />
+                <span className="hidden sm:inline">Importar</span>
+              </button>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept=".json,application/json"
+                onChange={handleFileImport}
+                className="hidden"
+              />
+            </div>
+
+            {/* Filter Tabs */}
+            <div className="flex p-0.5 bg-[#EAE4D9] rounded-lg text-xs font-medium text-stone-600">
+              <button
+                type="button"
+                onClick={() => setActiveTab('all')}
+                className={`flex-1 py-1 rounded-md transition-all ${
+                  activeTab === 'all'
+                    ? 'bg-white text-[#1C1E21] font-bold shadow-2xs'
+                    : 'hover:text-stone-900'
+                }`}
+              >
+                Todas ({recipes.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('porciones')}
+                className={`flex-1 py-1 rounded-md transition-all ${
+                  activeTab === 'porciones'
+                    ? 'bg-white text-[#1C1E21] font-bold shadow-2xs'
+                    : 'hover:text-stone-900'
+                }`}
+              >
+                Platos Carta ({porcionesCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('lote')}
+                className={`flex-1 py-1 rounded-md transition-all ${
+                  activeTab === 'lote'
+                    ? 'bg-white text-amber-900 font-bold shadow-2xs'
+                    : 'hover:text-stone-900'
+                }`}
+              >
+                Bases Lote ({loteCount})
+              </button>
+            </div>
           </div>
 
           {/* Search box */}
-          <div className="p-4 border-b border-[#E8E2D5]">
+          <div className="p-3 border-b border-[#E8E2D5]">
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Buscar por nombre, establecimiento o chef..."
-                className="w-full bg-white border border-[#DDD5C7] rounded-lg pl-9 pr-3 py-2 text-xs text-[#1C1E21] placeholder:text-stone-400 focus:border-[#8C7A5B] outline-hidden shadow-2xs"
+                placeholder="Buscar por nombre, establecimiento o tipo..."
+                className="w-full bg-white border border-[#DDD5C7] rounded-lg pl-9 pr-3 py-1.5 text-xs text-[#1C1E21] placeholder:text-stone-400 focus:border-[#8C7A5B] outline-hidden shadow-2xs"
               />
             </div>
           </div>
@@ -157,19 +229,22 @@ export const RecipeDrawer: React.FC<RecipeDrawerProps> = ({
               <div className="text-center py-12 text-stone-400 text-xs">
                 {searchTerm
                   ? 'No se encontraron recetas que coincidan con la búsqueda.'
-                  : 'Aún no tienes recetas registradas.'}
+                  : 'Aún no tienes registros en esta categoría.'}
               </div>
             ) : (
               filteredRecipes.map((recipe) => {
                 const isActive = recipe.id === activeRecipeId;
                 const calcs = calculateRecipeTotals(recipe);
+                const isLote = recipe.tipoReceta === 'lote';
 
                 return (
                   <div
                     key={recipe.id}
                     className={`border rounded-xl p-3.5 transition-all cursor-pointer ${
                       isActive
-                        ? 'bg-white border-[#8C7A5B] shadow-md ring-1 ring-[#8C7A5B]'
+                        ? isLote
+                          ? 'bg-amber-50/50 border-amber-500 shadow-md ring-1 ring-amber-500'
+                          : 'bg-white border-[#8C7A5B] shadow-md ring-1 ring-[#8C7A5B]'
                         : 'bg-white/80 border-[#E0D8CB] hover:border-[#8C7A5B]/60 hover:bg-white'
                     }`}
                     onClick={() => {
@@ -180,7 +255,9 @@ export const RecipeDrawer: React.FC<RecipeDrawerProps> = ({
                     <div className="flex items-start justify-between gap-2 mb-1.5">
                       <div className="flex items-center gap-1.5 flex-1 min-w-0">
                         {isActive && (
-                          <CheckCircle className="w-4 h-4 text-[#8C7A5B] shrink-0" />
+                          <CheckCircle
+                            className={`w-4 h-4 shrink-0 ${isLote ? 'text-amber-600' : 'text-[#8C7A5B]'}`}
+                          />
                         )}
                         <h3 className="font-editorial text-base font-bold text-[#1C1E21] truncate">
                           {recipe.nombre || 'Receta sin título'}
@@ -213,6 +290,21 @@ export const RecipeDrawer: React.FC<RecipeDrawerProps> = ({
                       </div>
                     </div>
 
+                    {/* Badge and Metadata */}
+                    <div className="flex items-center gap-2 mb-2">
+                      {isLote ? (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                          <Soup className="w-2.5 h-2.5" />
+                          BASE · {recipe.categoriaBase?.toUpperCase() || 'FONDO'}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-[#EAE4D9] text-stone-700">
+                          <UtensilsCrossed className="w-2.5 h-2.5" />
+                          PLATO CARTA · {recipe.pax} PAX
+                        </span>
+                      )}
+                    </div>
+
                     {/* Metadata chips */}
                     <div className="grid grid-cols-2 gap-y-1 gap-x-2 text-[11px] text-stone-500 mb-2">
                       <div className="flex items-center gap-1 truncate">
@@ -220,8 +312,19 @@ export const RecipeDrawer: React.FC<RecipeDrawerProps> = ({
                         <span>{recipe.fecha || 'Sin fecha'}</span>
                       </div>
                       <div className="flex items-center gap-1 truncate">
-                        <Users className="w-3 h-3 text-[#8C7A5B]" />
-                        <span>{recipe.pax} PAX</span>
+                        {isLote ? (
+                          <>
+                            <Soup className="w-3 h-3 text-amber-600" />
+                            <span>
+                              {calcs.rendimientoFinal?.toLocaleString('es-CO')} {calcs.unidadRendimiento}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <Users className="w-3 h-3 text-[#8C7A5B]" />
+                            <span>{recipe.pax} PAX</span>
+                          </>
+                        )}
                       </div>
                       <div className="flex items-center gap-1 col-span-2 truncate">
                         <Building2 className="w-3 h-3 text-[#8C7A5B]" />
@@ -230,24 +333,47 @@ export const RecipeDrawer: React.FC<RecipeDrawerProps> = ({
                     </div>
 
                     {/* Financial Pill */}
-                    <div className="pt-2 border-t border-[#F0EBE1] flex items-center justify-between text-xs font-mono">
-                      <div>
-                        <span className="text-[10px] text-stone-400 block font-sans">
-                          Costo MP:
-                        </span>
-                        <span className="font-semibold text-stone-800">
-                          {formatCurrency(calcs.costoMateriaPrimaTotal)}
-                        </span>
+                    {isLote ? (
+                      /* Resumen Financiero Lote (Costo Total y Costo Unitario, SIN precio de venta comercial) */
+                      <div className="pt-2 border-t border-amber-200/60 flex items-center justify-between text-xs font-mono bg-amber-50/40 -mx-3.5 -mb-3.5 p-2 rounded-b-xl">
+                        <div>
+                          <span className="text-[10px] text-stone-500 block font-sans">
+                            Costo Lote:
+                          </span>
+                          <span className="font-semibold text-stone-800">
+                            {formatCurrency(calcs.costoTotalLote || calcs.costoMateriaPrimaTotal)}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[10px] text-amber-800 block font-sans font-semibold">
+                            Costo x {calcs.unidadRendimiento}:
+                          </span>
+                          <span className="font-bold text-amber-900">
+                            {formatCurrency(calcs.costoPorUnidadMinima || 0)} / {calcs.unidadRendimiento}
+                          </span>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <span className="text-[10px] text-[#8C7A5B] block font-sans font-semibold">
-                          Precio Venta Real:
-                        </span>
-                        <span className="font-bold text-[#2E372E]">
-                          {formatCurrency(calcs.precioRealVenta)}
-                        </span>
+                    ) : (
+                      /* Resumen Financiero Carta (Costo MP y Precio Venta Real) */
+                      <div className="pt-2 border-t border-[#F0EBE1] flex items-center justify-between text-xs font-mono">
+                        <div>
+                          <span className="text-[10px] text-stone-400 block font-sans">
+                            Costo MP:
+                          </span>
+                          <span className="font-semibold text-stone-800">
+                            {formatCurrency(calcs.costoMateriaPrimaTotal)}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-[10px] text-[#8C7A5B] block font-sans font-semibold">
+                            Precio Venta Real:
+                          </span>
+                          <span className="font-bold text-[#2E372E]">
+                            {formatCurrency(calcs.precioRealVenta)}
+                          </span>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 );
               })

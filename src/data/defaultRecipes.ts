@@ -45,6 +45,60 @@ export function createNewRecipe(): Recipe {
 4. Integración de componentes, rectificación de sazón y punto de textura.
 5. Control térmico y reposo técnico antes de servicio.
 6. Montaje estándar de plato según especificaciones visuales de la ficha.`,
+    tipoReceta: 'porciones',
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+}
+
+export function createNewBaseRecipe(): Recipe {
+  const now = new Date();
+  const dateStr = now.toISOString().split('T')[0];
+
+  return {
+    id: 'base_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+    tipoReceta: 'lote',
+    categoriaBase: 'fondos',
+    nombre: 'Nueva Preparación Base / Fondo',
+    imagen: '',
+    fecha: dateStr,
+    creador: 'Técnico en Cocina',
+    establecimiento: 'Taller de Producción Gastronómica',
+    pax: 1,
+    batchYield: {
+      rendimientoFinal: 5000,
+      unidadRendimiento: 'ml',
+      costosAdicionalesProduccion: 0,
+      notasRendimiento: 'Rendimiento real aprovechable tras cocción y filtrado con estameña.',
+    },
+    ingredientes: [
+      {
+        id: 'ing_base_1',
+        item: 1,
+        grupoInventario: undefined,
+        ingrediente: '',
+        miseEnPlace: '',
+        unidad: 'g',
+        cantidadPorPax: 0,
+        cantidadLote: 0,
+        valorUnidadMinima: 0,
+      },
+    ],
+    margenErrorPorcentaje: 0,
+    mermaPorcentaje: 0,
+    porcentajeCosto: 100,
+    impoconsumoActivo: false,
+    impoconsumoPorcentaje: 0,
+    redondearPrecios: false,
+    metodoRedondeo: 'mil',
+    pasos: [
+      { id: 'step_1', numero: 1, descripcion: 'Mise en place general: Pesaje de carcasas/huesos, mirepoix y aromáticos.' },
+      { id: 'step_2', numero: 2, descripcion: 'Cocción lenta prolongada (simmering a 85-90°C), espumando impurezas periódicamente.' },
+      { id: 'step_3', numero: 3, descripcion: 'Filtrado con colador de malla fina / estameña, enfriamiento rápido y medición de volumen final.' },
+    ],
+    procedimiento: `1. Mise en place general: Pesaje de carcasas/huesos, mirepoix y aromáticos.
+2. Cocción lenta prolongada (simmering a 85-90°C), espumando impurezas periódicamente.
+3. Filtrado con colador de malla fina / estameña, enfriamiento rápido y medición de volumen final.`,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };

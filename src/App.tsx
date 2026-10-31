@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Recipe, IngredientItem } from './types/recipe';
-import { DEFAULT_RECIPES, createNewRecipe } from './data/defaultRecipes';
+import { DEFAULT_RECIPES, createNewRecipe, createNewBaseRecipe } from './data/defaultRecipes';
 import {
   loadStoredRecipes,
   saveStoredRecipes,
@@ -8,8 +8,9 @@ import {
   setActiveRecipeId,
   exportRecipeAsCSV,
   exportRecipeAsJSON,
+  findDependentRecipes,
 } from './services/storage';
-import { calculateRecipeTotals, procedureTextToSteps } from './utils/calculations';
+import { calculateRecipeTotals, procedureTextToSteps, formatCurrency } from './utils/calculations';
 import { Navbar } from './components/Navbar';
 import { RecipeHeader } from './components/RecipeHeader';
 import { IngredientTable } from './components/IngredientTable';
@@ -19,7 +20,7 @@ import { RecipeSheetView } from './components/RecipeSheetView';
 import { RecipeDrawer } from './components/RecipeDrawer';
 import { ConfirmModal } from './components/ConfirmModal';
 import { generateRecipePDF } from './services/pdfExport';
-import { RotateCw, Check, Loader2 } from 'lucide-react';
+import { RotateCw, Check, Loader2, Soup, RefreshCw, AlertCircle } from 'lucide-react';
 
 export default function App() {
   const [recipes, setRecipes] = useState<Recipe[]>(() => loadStoredRecipes());
@@ -58,6 +59,17 @@ export default function App() {
     return calculateRecipeTotals(currentRecipe);
   }, [currentRecipe]);
 
+  // Available base preparations catalog (for linking in dishes)
+  const availableBaseRecipes = useMemo(() => {
+    return recipes.filter((r) => r.tipoReceta === 'lote');
+  }, [recipes]);
+
+  // Recipes that depend on current recipe (if current recipe is a base preparation)
+  const dependentRecipes = useMemo(() => {
+    if (currentRecipe.tipoReceta !== 'lote') return [];
+    return findDependentRecipes(recipes, currentRecipe.id);
+  }, [recipes, currentRecipe]);
+
   // Persist recipes automatically whenever they change
   useEffect(() => {
     saveStoredRecipes(recipes);
@@ -89,14 +101,40 @@ export default function App() {
   // Ingredients handlers
   const handleAddIngredient = () => {
     const currentList = currentRecipe.ingredientes || [];
+    const isLote = currentRecipe.tipoReceta === 'lote';
     const newItem: IngredientItem = {
       id: 'ing_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
       item: currentList.length + 1,
       ingrediente: '',
       miseEnPlace: '',
-      unidad: 'g',
+      unidad: isLote ? 'g' : 'g',
       cantidadPorPax: 0,
+      cantidadLote: 0,
       valorUnidadMinima: 0,
+    };
+    updateCurrentRecipe({ ingredientes: [...currentList, newItem] });
+  };
+
+  const handleAddBaseIngredient = (baseRecipe: Recipe) => {
+    const baseCalcs = calculateRecipeTotals(baseRecipe);
+    const unit = (baseRecipe.batchYield?.unidadRendimiento || 'ml') as any;
+    const unitCost = baseCalcs.costoPorUnidadMinima || 0;
+    const currentList = currentRecipe.ingredientes || [];
+    const newItem: IngredientItem = {
+      id: 'ing_base_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      item: currentList.length + 1,
+      ingrediente: baseRecipe.nombre,
+      grupoInventario: 'e',
+      miseEnPlace: `Base culinaria (${baseRecipe.categoriaBase || 'fondo'})`,
+      unidad: unit,
+      cantidadPorPax: 0,
+      cantidadLote: 0,
+      valorUnidadMinima: unitCost,
+      esPreparacionBase: true,
+      baseRecipeId: baseRecipe.id,
+      baseRecipeNombre: baseRecipe.nombre,
+      baseRecipeUnitCost: unitCost,
+      baseRecipeYieldUnit: unit,
     };
     updateCurrentRecipe({ ingredientes: [...currentList, newItem] });
   };
@@ -181,6 +219,55 @@ export default function App() {
     setActiveId(newRec.id);
     setMode('edit');
     setIsSaved(true);
+  };
+
+  const handleNewBaseRecipe = () => {
+    const newBase = createNewBaseRecipe();
+    setRecipes((prev) => [newBase, ...prev]);
+    setActiveId(newBase.id);
+    setMode('edit');
+    setIsSaved(true);
+  };
+
+  const handleSyncBaseCostToDependents = () => {
+    if (currentRecipe.tipoReceta !== 'lote') return;
+    const currentUnitCost = calculations.costoPorUnidadMinima || 0;
+    const names = dependentRecipes.map((r) => r.nombre).join(', ');
+
+    setConfirmModal({
+      isOpen: true,
+      title: 'Control de Versiones: Sincronizar Costo de Base',
+      message: `El costo unitario de "${currentRecipe.nombre}" es ahora ${formatCurrency(currentUnitCost)} / ${calculations.unidadRendimiento}. Existen ${dependentRecipes.length} receta(s) vinculadas: ${names}. ¿Deseas actualizar el costo en las recetas vinculadas ahora o conservar su referencia histórica?`,
+      confirmText: 'Actualizar Recetas Vinculadas',
+      isDestructive: false,
+      onConfirm: () => {
+        setRecipes((prev) =>
+          prev.map((rec) => {
+            if (rec.id === currentRecipe.id) return rec;
+            const hasBase = rec.ingredientes.some((i) => i.baseRecipeId === currentRecipe.id);
+            if (!hasBase) return rec;
+            const updatedIngs = rec.ingredientes.map((i) => {
+              if (i.baseRecipeId === currentRecipe.id) {
+                return {
+                  ...i,
+                  valorUnidadMinima: currentUnitCost,
+                  baseRecipeUnitCost: currentUnitCost,
+                };
+              }
+              return i;
+            });
+            return {
+              ...rec,
+              ingredientes: updatedIngs,
+              updatedAt: Date.now(),
+            };
+          })
+        );
+        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        setRecalcToast(true);
+        setTimeout(() => setRecalcToast(false), 2500);
+      },
+    });
   };
 
   const handleDuplicateRecipe = (idToDuplicate?: string) => {
@@ -372,6 +459,35 @@ export default function App() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {mode === 'edit' ? (
           <div className="no-print">
+            {/* Versioning Alert Banner when editing a Base Recipe that has dependent dishes */}
+            {currentRecipe.tipoReceta === 'lote' && dependentRecipes.length > 0 && (
+              <div className="mb-4 p-4 bg-amber-50/90 border border-amber-300 rounded-xl shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-amber-900">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1.5 rounded-lg bg-amber-200/80 text-amber-900 shrink-0">
+                    <Soup className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="font-bold">Control de Versiones Activo:</span> Esta preparación base está vinculada en{' '}
+                    <strong>{dependentRecipes.length} receta(s)</strong> ({dependentRecipes.map((r) => r.nombre).join(', ')}).
+                    <p className="text-[11px] text-amber-800 mt-0.5">
+                      Costo unitario actual:{' '}
+                      <strong>{formatCurrency(calculations.costoPorUnidadMinima || 0)} / {calculations.unidadRendimiento}</strong>.
+                      Puedes sincronizar este nuevo costo o mantener sus costos históricos.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSyncBaseCostToDependents}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-800 text-amber-50 hover:bg-amber-900 font-semibold text-xs transition-colors shrink-0 shadow-2xs"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Sincronizar Recetas Vinculadas</span>
+                </button>
+              </div>
+            )}
+
             {/* Encabezado: Título, Metadatos, PAX e Imagen */}
             <RecipeHeader
               recipe={currentRecipe}
@@ -379,13 +495,15 @@ export default function App() {
               isEditMode={true}
             />
 
-            {/* Tabla Principal de Ingredientes (9 Columnas) */}
+            {/* Tabla Principal de Ingredientes (Adaptable Lote / Porciones) */}
             <IngredientTable
               ingredients={currentRecipe.ingredientes}
               calculations={calculations}
               pax={currentRecipe.pax}
               isEditMode={true}
+              availableBaseRecipes={availableBaseRecipes}
               onAddIngredient={handleAddIngredient}
+              onAddBaseIngredient={handleAddBaseIngredient}
               onUpdateIngredient={handleUpdateIngredient}
               onRemoveIngredient={handleRemoveIngredient}
               onMoveIngredient={handleMoveIngredient}
@@ -462,6 +580,7 @@ export default function App() {
           setIsSaved(true);
         }}
         onNewRecipe={handleNewRecipe}
+        onNewBaseRecipe={handleNewBaseRecipe}
         onDuplicateRecipe={(id) => handleDuplicateRecipe(id)}
         onDeleteRecipe={(id) => handleDeleteRecipePrompt(id)}
         onImportRecipeJSON={handleImportRecipeJSON}

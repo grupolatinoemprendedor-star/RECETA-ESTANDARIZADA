@@ -14,7 +14,11 @@ export function loadStoredRecipes(): Recipe[] {
     }
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed;
+      // Garantía de retrocompatibilidad: cualquier receta histórica se conserva como 'porciones'
+      return parsed.map((r) => ({
+        ...r,
+        tipoReceta: r.tipoReceta || 'porciones',
+      }));
     }
     return DEFAULT_RECIPES;
   } catch (error) {
@@ -52,6 +56,17 @@ export function setActiveRecipeId(id: string): void {
 }
 
 /**
+ * Finds all recipes that reference a given base recipe as an ingredient
+ */
+export function findDependentRecipes(recipes: Recipe[], baseRecipeId: string): Recipe[] {
+  return recipes.filter(
+    (r) =>
+      r.id !== baseRecipeId &&
+      r.ingredientes.some((ing) => ing.esPreparacionBase && ing.baseRecipeId === baseRecipeId)
+  );
+}
+
+/**
  * Downloads a Recipe as a clean JSON file
  */
 export function exportRecipeAsJSON(recipe: Recipe): void {
@@ -70,15 +85,59 @@ export function exportRecipeAsJSON(recipe: Recipe): void {
  */
 export function exportRecipeAsCSV(recipe: Recipe): void {
   const calcs = calculateRecipeTotals(recipe);
+  const isLote = recipe.tipoReceta === 'lote';
+
   const rows: string[][] = [
-    ['FICHA TÉCNICA - RECETA ESTÁNDAR TÉCNICO EN COCINA'],
+    [isLote ? 'FICHA TÉCNICA - PREPARACIÓN BASE (COSTEO POR LOTE Y RENDIMIENTO)' : 'FICHA TÉCNICA - RECETA ESTÁNDAR TÉCNICO EN COCINA'],
     ['Receta:', recipe.nombre],
+    ['Tipo de Modalidad:', isLote ? 'Preparación Base / Intermedia (Costeo por Lote)' : 'Venta Directa / Carta (Por Porciones)'],
     ['Fecha:', recipe.fecha],
     ['Creador:', recipe.creador],
     ['Establecimiento:', recipe.establecimiento],
-    ['No. PAX:', recipe.pax.toString()],
+    [isLote ? 'Rendimiento Obtenido:' : 'No. PAX:', isLote ? `${calcs.rendimientoFinal} ${calcs.unidadRendimiento}` : recipe.pax.toString()],
     [''],
-    [
+  ];
+
+  if (isLote) {
+    // Columnas para modalidad Lote
+    rows.push([
+      'ITEM',
+      'G.I (GRUPO INVENTARIO)',
+      'INGREDIENTE',
+      'MISE EN PLACE',
+      'UNIDAD',
+      'CANTIDAD UTILIZADA (LOTE)',
+      'VALOR UNIDAD MINIMA (COP)',
+      'VALOR TOTAL INSUMO (COP)',
+    ]);
+
+    calcs.ingredientesCalculados.forEach((item) => {
+      rows.push([
+        `#${String(item.item).padStart(2, '0')}`,
+        item.grupoInventario ? item.grupoInventario.toUpperCase() : '',
+        `"${(item.ingrediente || '').replace(/"/g, '""')}"`,
+        `"${(item.miseEnPlace || '').replace(/"/g, '""')}"`,
+        item.unidad,
+        formatQuantity(item.cantidadLote ?? item.cantidadPorPax),
+        formatQuantity(item.valorUnidadMinima),
+        formatQuantity(item.valorTotal),
+      ]);
+    });
+
+    rows.push(['']);
+    rows.push(['RESUMEN DE COSTEO POR LOTE Y RENDIMIENTO CULINARIO']);
+    rows.push(['Costo Total Insumos Lote:', formatCurrency(calcs.costoTotalLote)]);
+    if (calcs.costosAdicionalesProduccion > 0) {
+      rows.push(['Costos Adicionales de Producción:', formatCurrency(calcs.costosAdicionalesProduccion)]);
+      rows.push(['Costo Total de Producción Lote:', formatCurrency(calcs.costoTotalProduccionLote)]);
+    }
+    rows.push(['Rendimiento Final Real Aprovechable:', `${calcs.rendimientoFinal} ${calcs.unidadRendimiento}`]);
+    rows.push([`Costo por ${calcs.unidadRendimientoBase}:`, formatCurrency(calcs.costoPorUnidadMinima)]);
+    rows.push([`Costo por 100 ${calcs.unidadRendimientoBase}:`, formatCurrency(calcs.costoPorCienUnidades)]);
+    rows.push([`Costo por ${calcs.unidadRendimientoBase === 'ml' ? 'Litro (L)' : 'Kilogramo (kg)'}:`, formatCurrency(calcs.costoPorUnidadMayor)]);
+  } else {
+    // Columnas modalidad Porciones (100% conservada)
+    rows.push([
       'ITEM',
       'G.I (GRUPO INVENTARIO)',
       'INGREDIENTE',
@@ -89,41 +148,41 @@ export function exportRecipeAsCSV(recipe: Recipe): void {
       'VALOR UNIDAD MINIMA (COP)',
       'VALOR X 1 PAX (COP)',
       'VALOR TOTAL (COP)',
-    ],
-  ];
-
-  calcs.ingredientesCalculados.forEach((item) => {
-    rows.push([
-      `#${String(item.item).padStart(2, '0')}`,
-      item.grupoInventario ? item.grupoInventario.toUpperCase() : '',
-      `"${(item.ingrediente || '').replace(/"/g, '""')}"`,
-      `"${(item.miseEnPlace || '').replace(/"/g, '""')}"`,
-      item.unidad,
-      formatQuantity(item.cantidadPorPax),
-      formatQuantity(item.cantidadTotal),
-      formatQuantity(item.valorUnidadMinima),
-      formatQuantity(item.valorPorPax),
-      formatQuantity(item.valorTotal),
     ]);
-  });
 
-  rows.push(['']);
-  rows.push(['RESUMEN DE COSTEO']);
-  rows.push(['Costo Total de Materia Prima:', formatCurrency(calcs.costoMateriaPrimaTotal)]);
-  rows.push(['Costo Materia Prima x 1 PAX:', formatCurrency(calcs.costoMateriaPrimaPorPax)]);
-  rows.push([`% Margen de Error:`, `${calcs.margenErrorPorcentaje}%`]);
-  rows.push([`Valor Margen de Error:`, formatCurrency(calcs.valorMargenError)]);
-  rows.push([`Costo con Margen de Error:`, formatCurrency(calcs.costoConMargenError)]);
-  rows.push(['% Merma de Producción / Cocción:', `${calcs.mermaPorcentaje}%`]);
-  rows.push(['Costo con Merma:', formatCurrency(calcs.costoConMerma)]);
-  rows.push(['% de Costo (Food Cost):', `${calcs.porcentajeCosto}%`]);
-  rows.push(['Precio de Venta Base:', formatCurrency(calcs.precioVenta)]);
-  rows.push(['Impoconsumo (8%):', calcs.impoconsumoActivo ? `${calcs.impoconsumoPorcentaje}% (${formatCurrency(calcs.valorImpoconsumo)})` : 'NO ($ 0)']);
-  rows.push(['PRECIO REAL DE VENTA TOTAL (CERRADO):', formatCurrency(calcs.precioRealVenta)]);
-  rows.push(['PRECIO REAL DE VENTA X 1 PAX (CARTA CERRADO):', formatCurrency(calcs.precioRealVentaPorPax)]);
-  if (calcs.preciosRedondeados) {
-    rows.push(['Precio Real Total Sin Redondear:', formatCurrency(calcs.precioRealVentaSinRedondeo)]);
-    rows.push(['Precio Carta x 1 PAX Sin Redondear:', formatCurrency(calcs.precioRealVentaPorPaxSinRedondeo)]);
+    calcs.ingredientesCalculados.forEach((item) => {
+      rows.push([
+        `#${String(item.item).padStart(2, '0')}`,
+        item.grupoInventario ? item.grupoInventario.toUpperCase() : '',
+        `"${(item.ingrediente || '').replace(/"/g, '""')}"`,
+        `"${(item.miseEnPlace || '').replace(/"/g, '""')}"`,
+        item.unidad,
+        formatQuantity(item.cantidadPorPax),
+        formatQuantity(item.cantidadTotal),
+        formatQuantity(item.valorUnidadMinima),
+        formatQuantity(item.valorPorPax),
+        formatQuantity(item.valorTotal),
+      ]);
+    });
+
+    rows.push(['']);
+    rows.push(['RESUMEN DE COSTEO']);
+    rows.push(['Costo Total de Materia Prima:', formatCurrency(calcs.costoMateriaPrimaTotal)]);
+    rows.push(['Costo Materia Prima x 1 PAX:', formatCurrency(calcs.costoMateriaPrimaPorPax)]);
+    rows.push([`% Margen de Error:`, `${calcs.margenErrorPorcentaje}%`]);
+    rows.push([`Valor Margen de Error:`, formatCurrency(calcs.valorMargenError)]);
+    rows.push([`Costo con Margen de Error:`, formatCurrency(calcs.costoConMargenError)]);
+    rows.push(['% Merma de Producción / Cocción:', `${calcs.mermaPorcentaje}%`]);
+    rows.push(['Costo con Merma:', formatCurrency(calcs.costoConMerma)]);
+    rows.push(['% de Costo (Food Cost):', `${calcs.porcentajeCosto}%`]);
+    rows.push(['Precio de Venta Base:', formatCurrency(calcs.precioVenta)]);
+    rows.push(['Impoconsumo (8%):', calcs.impoconsumoActivo ? `${calcs.impoconsumoPorcentaje}% (${formatCurrency(calcs.valorImpoconsumo)})` : 'NO ($ 0)']);
+    rows.push(['PRECIO REAL DE VENTA TOTAL (CERRADO):', formatCurrency(calcs.precioRealVenta)]);
+    rows.push(['PRECIO REAL DE VENTA X 1 PAX (CARTA CERRADO):', formatCurrency(calcs.precioRealVentaPorPax)]);
+    if (calcs.preciosRedondeados) {
+      rows.push(['Precio Real Total Sin Redondear:', formatCurrency(calcs.precioRealVentaSinRedondeo)]);
+      rows.push(['Precio Carta x 1 PAX Sin Redondear:', formatCurrency(calcs.precioRealVentaPorPaxSinRedondeo)]);
+    }
   }
 
   const procedure = getRecipeProcedure(recipe);

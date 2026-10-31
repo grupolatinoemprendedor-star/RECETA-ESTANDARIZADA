@@ -1,0 +1,6 @@
+{
+  "summary":  "Plan de implementación definitivo con los 4 ajustes requeridos: campos independientes para cantidades de lote (cantidadLote), preservación intacta de datos reales en localStorage, tratamiento diferenciado de mermas sin duplicación, conversiones estrictas dentro de la misma magnitud física (volumen <-> volumen, masa <-> masa), y confirmación de compatibilidad retroactiva total.",
+  "updatedAt":  "2026-10-31T14:18:12.352336475Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}

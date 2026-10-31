@@ -182,11 +182,179 @@ export function calculateRealSellingPrice(sellingPrice: number, taxAmount: numbe
 }
 
 /**
- * Central calculation engine: evaluates the entire recipe
+ * Strict physical magnitude conversion:
+ * Volume <-> Volume (ml, L)
+ * Mass <-> Mass (g, kg, libra, arroba)
+ * Count <-> Count (unidad, docena)
+ * Rejects cross-magnitude conversion (e.g. g <-> ml) without defined density.
+ */
+export function convertCompatibleUnits(
+  qty: number,
+  fromUnit: string,
+  toUnit: string
+): { success: boolean; convertedQty: number; error?: string } {
+  if (!qty || isNaN(qty)) return { success: true, convertedQty: 0 };
+  const fromNorm = (fromUnit || '').toLowerCase().trim();
+  const toNorm = (toUnit || '').toLowerCase().trim();
+
+  if (fromNorm === toNorm) return { success: true, convertedQty: qty };
+
+  const { factor: fromFactor, minUnitName: fromMin } = getUnitConversionFactor(fromNorm);
+  const { factor: toFactor, minUnitName: toMin } = getUnitConversionFactor(toNorm);
+
+  // Both must share the exact same physical minimum unit (e.g. both 'g', or both 'ml', or both 'unidad')
+  if (fromMin !== toMin) {
+    return {
+      success: false,
+      convertedQty: qty,
+      error: `Incompatibilidad de magnitudes: no se puede convertir ${fromUnit} (${fromMin}) a ${toUnit} (${toMin}) sin una densidad específica definida.`,
+    };
+  }
+
+  // Convert to base minimal units, then to target unit
+  const inMinUnits = qty * fromFactor;
+  const inTargetUnits = Number((inMinUnits / toFactor).toFixed(4));
+  return { success: true, convertedQty: inTargetUnits };
+}
+
+/**
+ * Central calculation engine: evaluates either portion recipes or batch yield recipes
  */
 export function calculateRecipeTotals(recipe: Recipe): RecipeCalculations {
-  const safePax = Math.max(1, recipe.pax || 1);
+  const tipoReceta = recipe.tipoReceta || 'porciones';
   let incompletosCount = 0;
+
+  // =========================================================================
+  // MODALIDAD B: COSTEO POR LOTE O RENDIMIENTO (FONDOS, SALSAS MADRE, BASES)
+  // =========================================================================
+  if (tipoReceta === 'lote') {
+    const ingredientesCalculados: CalculatedIngredient[] = recipe.ingredientes.map((item, index) => {
+      // In batch mode, we strictly use item.cantidadLote (falling back to cantidadPorPax if legacy/new)
+      const qty = item.cantidadLote !== undefined ? Number(item.cantidadLote) : Number(item.cantidadPorPax) || 0;
+      const cost = Number(item.valorUnidadMinima) || 0;
+      const unit = item.unidad === 'personalizada' ? (item.customUnidad || 'unidad') : item.unidad;
+
+      const hasIngrediente = !!(item.ingrediente && item.ingrediente.trim());
+      const hasQty = qty > 0;
+      const hasCost = cost > 0;
+
+      let incompleto = false;
+      let mensajeIncompleto: string | undefined;
+
+      if (hasIngrediente && hasQty && !hasCost) {
+        incompleto = true;
+        incompletosCount++;
+        const { minUnitName } = getUnitConversionFactor(unit);
+        mensajeIncompleto = `Pendiente: ingresa el valor por ${minUnitName} para costear el lote.`;
+      } else if (hasIngrediente && !hasQty && hasCost) {
+        incompleto = true;
+        incompletosCount++;
+        mensajeIncompleto = 'Pendiente: ingresa la cantidad utilizada en el lote.';
+      }
+
+      const { factor } = getUnitConversionFactor(unit);
+      const costoIngredienteLote = Number((qty * factor * cost).toFixed(4));
+
+      return {
+        item: index + 1,
+        grupoInventario: item.grupoInventario,
+        ingrediente: item.ingrediente || '',
+        miseEnPlace: item.miseEnPlace || '',
+        unidad: unit,
+        cantidadPorPax: 0,
+        cantidadTotal: qty,
+        cantidadLote: qty,
+        costoIngredienteLote,
+        valorUnidadMinima: cost,
+        valorPorPax: 0,
+        valorTotal: costoIngredienteLote,
+        incompleto,
+        mensajeIncompleto,
+        esPreparacionBase: item.esPreparacionBase,
+        baseRecipeId: item.baseRecipeId,
+        baseRecipeNombre: item.baseRecipeNombre,
+        baseRecipeUnitCost: item.baseRecipeUnitCost,
+      };
+    });
+
+    const costoTotalLote = ingredientesCalculados.reduce((sum, item) => sum + (item.valorTotal || 0), 0);
+    const costosAdicionalesProduccion = Math.max(0, Number(recipe.batchYield?.costosAdicionalesProduccion) || 0);
+    const costoTotalProduccionLote = Number((costoTotalLote + costosAdicionalesProduccion).toFixed(4));
+
+    const rendimientoFinal = Math.max(0, Number(recipe.batchYield?.rendimientoFinal) || 0);
+    const unidadRendimiento = recipe.batchYield?.unidadRendimiento || 'ml';
+
+    let rendimientoFinalNormalizado = rendimientoFinal;
+    let unidadRendimientoBase: 'ml' | 'g' = 'ml';
+
+    if (unidadRendimiento === 'L') {
+      rendimientoFinalNormalizado = rendimientoFinal * 1000;
+      unidadRendimientoBase = 'ml';
+    } else if (unidadRendimiento === 'kg') {
+      rendimientoFinalNormalizado = rendimientoFinal * 1000;
+      unidadRendimientoBase = 'g';
+    } else if (unidadRendimiento === 'g') {
+      rendimientoFinalNormalizado = rendimientoFinal;
+      unidadRendimientoBase = 'g';
+    } else {
+      rendimientoFinalNormalizado = rendimientoFinal;
+      unidadRendimientoBase = 'ml';
+    }
+
+    const costoPorUnidadMinima = rendimientoFinalNormalizado > 0
+      ? Number((costoTotalProduccionLote / rendimientoFinalNormalizado).toFixed(4))
+      : 0;
+
+    const costoPorCienUnidades = Number((costoPorUnidadMinima * 100).toFixed(4));
+    const costoPorUnidadMayor = Number((costoPorUnidadMinima * 1000).toFixed(4));
+
+    return {
+      tipoReceta: 'lote',
+      ingredientesCalculados,
+      costoMateriaPrimaTotal: costoTotalLote,
+      costoMateriaPrimaPorPax: 0,
+      margenErrorPorcentaje: 0,
+      costoConMargenError: costoTotalLote,
+      costoConMargenErrorPorPax: 0,
+      valorMargenError: 0,
+      valorMargenErrorPorPax: 0,
+      mermaPorcentaje: 0,
+      costoConMerma: costoTotalLote,
+      costoConMermaPorPax: 0,
+      porcentajeCosto: 100,
+      precioVenta: 0,
+      precioVentaPorPax: 0,
+      impoconsumoActivo: false,
+      impoconsumoPorcentaje: 0,
+      valorImpoconsumo: 0,
+      valorImpoconsumoPorPax: 0,
+      precioRealVenta: 0,
+      precioRealVentaPorPax: 0,
+      precioRealVentaSinRedondeo: 0,
+      precioRealVentaPorPaxSinRedondeo: 0,
+      preciosRedondeados: false,
+      metodoRedondeo: 'mil',
+      margenBrutoEstimado: 0,
+      hayIncompletos: incompletosCount > 0,
+      ingredientesIncompletosCount: incompletosCount,
+      // Métricas de lote
+      costoTotalLote,
+      costosAdicionalesProduccion,
+      costoTotalProduccionLote,
+      rendimientoFinal,
+      unidadRendimiento,
+      rendimientoFinalNormalizado,
+      unidadRendimientoBase,
+      costoPorUnidadMinima,
+      costoPorCienUnidades,
+      costoPorUnidadMayor,
+    };
+  }
+
+  // =========================================================================
+  // MODALIDAD A: COSTEO POR PORCIONES (VENTA DIRECTA, PLATOS, CARTA) - 100% PRESERVADO
+  // =========================================================================
+  const safePax = Math.max(1, recipe.pax || 1);
 
   const ingredientesCalculados: CalculatedIngredient[] = recipe.ingredientes.map((item, index) => {
     const qty = Number(item.cantidadPorPax) || 0;
@@ -223,11 +391,17 @@ export function calculateRecipeTotals(recipe: Recipe): RecipeCalculations {
       unidad: unit,
       cantidadPorPax: qty,
       cantidadTotal,
+      cantidadLote: qty,
+      costoIngredienteLote: valorTotal,
       valorUnidadMinima: cost,
       valorPorPax,
       valorTotal,
       incompleto,
       mensajeIncompleto,
+      esPreparacionBase: item.esPreparacionBase,
+      baseRecipeId: item.baseRecipeId,
+      baseRecipeNombre: item.baseRecipeNombre,
+      baseRecipeUnitCost: item.baseRecipeUnitCost,
     };
   });
 
@@ -273,6 +447,7 @@ export function calculateRecipeTotals(recipe: Recipe): RecipeCalculations {
   const margenBrutoEstimado = precioVenta > 0 ? ((precioVenta - costoConMerma) / precioVenta) * 100 : 0;
 
   return {
+    tipoReceta: 'porciones',
     ingredientesCalculados,
     costoMateriaPrimaTotal,
     costoMateriaPrimaPorPax,
@@ -300,6 +475,17 @@ export function calculateRecipeTotals(recipe: Recipe): RecipeCalculations {
     margenBrutoEstimado,
     hayIncompletos: incompletosCount > 0,
     ingredientesIncompletosCount: incompletosCount,
+    // Valores de lote en cero para recetas por porciones
+    costoTotalLote: 0,
+    costosAdicionalesProduccion: 0,
+    costoTotalProduccionLote: 0,
+    rendimientoFinal: 0,
+    unidadRendimiento: 'ml',
+    rendimientoFinalNormalizado: 0,
+    unidadRendimientoBase: 'ml',
+    costoPorUnidadMinima: 0,
+    costoPorCienUnidades: 0,
+    costoPorUnidadMayor: 0,
   };
 }
 

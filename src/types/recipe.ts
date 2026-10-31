@@ -22,6 +22,16 @@ export const GRUPO_INVENTARIO_CONFIG: Record<
   s: { label: 'S', nombre: 'Suministros', colorBg: 'bg-purple-100', colorText: 'text-purple-800', colorBorder: 'border-purple-300' },
 };
 
+export type TipoReceta = 'porciones' | 'lote';
+export type CategoriaBase = 'fondos' | 'salsas' | 'caldos' | 'masas' | 'bases' | 'otro';
+
+export interface BatchYieldConfig {
+  rendimientoFinal: number; // Ej. 4200 o 5000 (volumen o peso real aprovechable tras cocción y mermas)
+  unidadRendimiento: 'ml' | 'g' | 'L' | 'kg'; // Magnitud física del rendimiento obtenido
+  costosAdicionalesProduccion?: number; // Costos adicionales opcionales (ej. energía específica, empaque)
+  notasRendimiento?: string; // Anotaciones de pérdidas por evaporación, filtrado o espumado
+}
+
 export interface IngredientItem {
   id: string;
   item: number; // 1, 2, 3...
@@ -30,8 +40,15 @@ export interface IngredientItem {
   miseEnPlace: string;
   unidad: StandardUnit | string;
   customUnidad?: string;
-  cantidadPorPax: number;
-  valorUnidadMinima: number; // Cost per minimal unit (e.g. per gram, per ml, per unit)
+  cantidadPorPax: number; // Solo para recetas por porciones (preservado 100%)
+  cantidadLote?: number; // Campo independiente para recetas por lote (sin mezclar con PAX)
+  valorUnidadMinima: number; // Costo por unidad mínima ($/g, $/ml, $/und)
+  // Integración con preparaciones base reutilizables
+  esPreparacionBase?: boolean;
+  baseRecipeId?: string;
+  baseRecipeNombre?: string;
+  baseRecipeUnitCost?: number; // Costo histórico capturado al vincular
+  baseRecipeYieldUnit?: string;
 }
 
 export interface CulinaryStep {
@@ -44,6 +61,9 @@ export type RoundingMethod = 'mil' | 'centena' | 'cincuenta' | 'exacto_entero';
 
 export interface Recipe {
   id: string;
+  tipoReceta?: TipoReceta; // 'porciones' (default) | 'lote'
+  categoriaBase?: CategoriaBase;
+  batchYield?: BatchYieldConfig;
   nombre: string;
   imagen: string; // Base64 data URL or empty
   fecha: string; // YYYY-MM-DD
@@ -75,14 +95,21 @@ export interface CalculatedIngredient {
   unidad: string;
   cantidadPorPax: number;
   cantidadTotal: number;
+  cantidadLote?: number;
+  costoIngredienteLote?: number;
   valorUnidadMinima: number;
   valorPorPax: number;
   valorTotal: number;
   incompleto: boolean;
   mensajeIncompleto?: string;
+  esPreparacionBase?: boolean;
+  baseRecipeId?: string;
+  baseRecipeNombre?: string;
+  baseRecipeUnitCost?: number;
 }
 
 export interface RecipeCalculations {
+  tipoReceta: TipoReceta;
   ingredientesCalculados: CalculatedIngredient[];
   costoMateriaPrimaTotal: number;
   costoMateriaPrimaPorPax: number;
@@ -110,4 +137,16 @@ export interface RecipeCalculations {
   margenBrutoEstimado: number;
   hayIncompletos: boolean;
   ingredientesIncompletosCount: number;
+
+  // Métricas exclusivas para Modalidad B (Costeo por Lote / Rendimiento)
+  costoTotalLote: number;
+  costosAdicionalesProduccion: number;
+  costoTotalProduccionLote: number;
+  rendimientoFinal: number;
+  unidadRendimiento: 'ml' | 'g' | 'L' | 'kg';
+  rendimientoFinalNormalizado: number; // en ml o g
+  unidadRendimientoBase: 'ml' | 'g';
+  costoPorUnidadMinima: number; // $/ml o $/g
+  costoPorCienUnidades: number; // $/100ml o $/100g
+  costoPorUnidadMayor: number; // $/L o $/kg
 }

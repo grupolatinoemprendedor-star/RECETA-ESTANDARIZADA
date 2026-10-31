@@ -43,11 +43,15 @@ export function generateNativeRecipePDF(recipe: Recipe, calculations: RecipeCalc
     doc.setFontSize(8);
     doc.text('TÉCNICO EN COCINA · ESTANDARIZACIÓN Y COSTEO', margin + 5, currentY + 19);
 
-    // Date & PAX badge on the right
+    // Date & PAX / Yield badge on the right
     doc.setTextColor(209, 189, 155);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.text(`PAX: ${recipe.pax} PORCIONES`, pageWidth - margin - 5, currentY + 11, { align: 'right' });
+    doc.setFontSize(9);
+    if (recipe.tipoReceta === 'lote') {
+      doc.text(`RENDIMIENTO: ${calculations.rendimientoFinal} ${calculations.unidadRendimiento?.toUpperCase()}`, pageWidth - margin - 5, currentY + 11, { align: 'right' });
+    } else {
+      doc.text(`PAX: ${recipe.pax} PORCIONES`, pageWidth - margin - 5, currentY + 11, { align: 'right' });
+    }
 
     doc.setTextColor(220, 220, 220);
     doc.setFont('helvetica', 'normal');
@@ -79,8 +83,13 @@ export function generateNativeRecipePDF(recipe: Recipe, calculations: RecipeCalc
     doc.text(`CREADOR / RESPONSABLE: ${recipe.creador || 'Chef / Técnico en Cocina'}`, col1, currentY + 13);
     doc.text(`ESTABLECIMIENTO: ${recipe.establecimiento || 'Cocina Central'}`, col1, currentY + 17);
 
-    doc.text(`BASE PORCIONES: ${recipe.pax} PAX`, col2, currentY + 13);
-    doc.text(`FECHA REGISTRO: ${recipe.fecha || 'Fecha actual'}`, col2, currentY + 17);
+    if (recipe.tipoReceta === 'lote') {
+      doc.text(`TIPO: BASE (${recipe.categoriaBase?.toUpperCase() || 'FONDO'})`, col2, currentY + 13);
+      doc.text(`RENDIMIENTO REAL: ${calculations.rendimientoFinal} ${calculations.unidadRendimiento}`, col2, currentY + 17);
+    } else {
+      doc.text(`BASE PORCIONES: ${recipe.pax} PAX`, col2, currentY + 13);
+      doc.text(`FECHA REGISTRO: ${recipe.fecha || 'Fecha actual'}`, col2, currentY + 17);
+    }
 
     doc.text(`TIEMPO PREPARACIÓN: ${recipe.tiempoPreparacion || '45 minutos'}`, col3, currentY + 13);
     doc.text(`TEMP. SERVICIO: ${recipe.temperaturaServicio || '65°C a 70°C'}`, col3, currentY + 17);
@@ -91,7 +100,13 @@ export function generateNativeRecipePDF(recipe: Recipe, calculations: RecipeCalc
     doc.setTextColor(28, 30, 33);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
-    doc.text('1. LISTA TÉCNICA DE INGREDIENTES Y COSTEO AL GRAMO', margin, currentY);
+    doc.text(
+      recipe.tipoReceta === 'lote'
+        ? '1. LISTA TÉCNICA DE INSUMOS DEL LOTE (CANTIDADES GLOBALES)'
+        : '1. LISTA TÉCNICA DE INGREDIENTES Y COSTEO AL GRAMO',
+      margin,
+      currentY
+    );
 
     // G.I legend
     doc.setFont('helvetica', 'normal');
@@ -105,181 +120,334 @@ export function generateNativeRecipePDF(recipe: Recipe, calculations: RecipeCalc
 
     currentY += 5;
 
-    const tableRows = calculations.ingredientesCalculados.map((item, idx) => [
-      (idx + 1).toString(),
-      item.grupoInventario ? item.grupoInventario.toUpperCase() : '-',
-      item.ingrediente,
-      item.miseEnPlace || '-',
-      item.unidad,
-      formatQuantity(item.cantidadPorPax),
-      formatQuantity(item.cantidadTotal),
-      formatCurrency(item.valorUnidadMinima),
-      formatCurrency(item.valorPorPax),
-      formatCurrency(item.valorTotal),
-    ]);
+    if (recipe.tipoReceta === 'lote') {
+      const tableRows = calculations.ingredientesCalculados.map((item, idx) => [
+        (idx + 1).toString(),
+        item.grupoInventario ? item.grupoInventario.toUpperCase() : '-',
+        item.ingrediente,
+        item.miseEnPlace || '-',
+        item.unidad,
+        formatQuantity(item.cantidadTotal),
+        formatCurrency(item.valorUnidadMinima),
+        formatCurrency(item.valorTotal),
+      ]);
 
-    // Footer row with totals
-    const footerRow = [
-      '',
-      '',
-      'COSTO TOTAL DE MATERIA PRIMA',
-      '',
-      '',
-      '',
-      '',
-      '',
-      formatCurrency(calculations.costoMateriaPrimaPorPax),
-      formatCurrency(calculations.costoMateriaPrimaTotal),
-    ];
+      const footerRow = [
+        '',
+        '',
+        'COSTO TOTAL INSUMOS DEL LOTE',
+        '',
+        '',
+        '',
+        '',
+        formatCurrency(calculations.costoMateriaPrimaTotal),
+      ];
 
-    autoTable(doc, {
-      startY: currentY,
-      margin: { left: margin, right: margin },
-      head: [
-        [
-          'N°',
-          'G.I',
-          'INGREDIENTE',
-          'MISE EN PLACE',
-          'UNIDAD',
-          'CANT. X PAX',
-          `CANT. TOTAL (${recipe.pax})`,
-          'VALOR UNIT.',
-          'VALOR X PAX',
-          'VALOR TOTAL',
+      autoTable(doc, {
+        startY: currentY,
+        margin: { left: margin, right: margin },
+        head: [
+          [
+            'N°',
+            'G.I',
+            'INGREDIENTE DEL LOTE',
+            'MISE EN PLACE',
+            'UNIDAD',
+            'CANT. LOTE',
+            'VALOR UNIT.',
+            'VALOR TOTAL',
+          ],
         ],
-      ],
-      body: tableRows,
-      foot: [footerRow],
-      theme: 'grid',
-      headStyles: {
-        fillColor: [36, 42, 36],
-        textColor: [240, 235, 225],
-        fontSize: 6.5,
-        fontStyle: 'bold',
-        halign: 'center',
-        valign: 'middle',
-      },
-      columnStyles: {
-        0: { halign: 'center', cellWidth: 7 },
-        1: { halign: 'center', fontStyle: 'bold', cellWidth: 8 },
-        2: { halign: 'left', fontStyle: 'bold', cellWidth: 38 },
-        3: { halign: 'left', cellWidth: 30 },
-        4: { halign: 'center', cellWidth: 13 },
-        5: { halign: 'right', cellWidth: 15 },
-        6: { halign: 'right', cellWidth: 17 },
-        7: { halign: 'right', cellWidth: 18 },
-        8: { halign: 'right', cellWidth: 19 },
-        9: { halign: 'right', cellWidth: 21 },
-      },
-      footStyles: {
-        fillColor: [240, 236, 228],
-        textColor: [28, 30, 33],
-        fontStyle: 'bold',
-        fontSize: 7,
-      },
-      bodyStyles: {
-        fontSize: 6.8,
-        textColor: [30, 30, 30],
-        cellPadding: 1.5,
-      },
-      alternateRowStyles: {
-        fillColor: [253, 252, 250],
-      },
-    });
+        body: tableRows,
+        foot: [footerRow],
+        theme: 'grid',
+        headStyles: {
+          fillColor: [36, 42, 36],
+          textColor: [240, 235, 225],
+          fontSize: 6.5,
+          fontStyle: 'bold',
+          halign: 'center',
+          valign: 'middle',
+        },
+        columnStyles: {
+          0: { halign: 'center', cellWidth: 8 },
+          1: { halign: 'center', fontStyle: 'bold', cellWidth: 9 },
+          2: { halign: 'left', fontStyle: 'bold', cellWidth: 48 },
+          3: { halign: 'left', cellWidth: 38 },
+          4: { halign: 'center', cellWidth: 16 },
+          5: { halign: 'right', cellWidth: 22 },
+          6: { halign: 'right', cellWidth: 22 },
+          7: { halign: 'right', cellWidth: 25 },
+        },
+        footStyles: {
+          fillColor: [240, 236, 228],
+          textColor: [28, 30, 33],
+          fontStyle: 'bold',
+          fontSize: 7,
+        },
+        bodyStyles: {
+          fontSize: 6.8,
+          textColor: [30, 30, 30],
+          cellPadding: 1.5,
+        },
+        alternateRowStyles: {
+          fillColor: [253, 252, 250],
+        },
+      });
+    } else {
+      const tableRows = calculations.ingredientesCalculados.map((item, idx) => [
+        (idx + 1).toString(),
+        item.grupoInventario ? item.grupoInventario.toUpperCase() : '-',
+        item.ingrediente,
+        item.miseEnPlace || '-',
+        item.unidad,
+        formatQuantity(item.cantidadPorPax),
+        formatQuantity(item.cantidadTotal),
+        formatCurrency(item.valorUnidadMinima),
+        formatCurrency(item.valorPorPax),
+        formatCurrency(item.valorTotal),
+      ]);
+
+      const footerRow = [
+        '',
+        '',
+        'COSTO TOTAL DE MATERIA PRIMA',
+        '',
+        '',
+        '',
+        '',
+        '',
+        formatCurrency(calculations.costoMateriaPrimaPorPax),
+        formatCurrency(calculations.costoMateriaPrimaTotal),
+      ];
+
+      autoTable(doc, {
+        startY: currentY,
+        margin: { left: margin, right: margin },
+        head: [
+          [
+            'N°',
+            'G.I',
+            'INGREDIENTE',
+            'MISE EN PLACE',
+            'UNIDAD',
+            'CANT. X PAX',
+            `CANT. TOTAL (${recipe.pax})`,
+            'VALOR UNIT.',
+            'VALOR X PAX',
+            'VALOR TOTAL',
+          ],
+        ],
+        body: tableRows,
+        foot: [footerRow],
+        theme: 'grid',
+        headStyles: {
+          fillColor: [36, 42, 36],
+          textColor: [240, 235, 225],
+          fontSize: 6.5,
+          fontStyle: 'bold',
+          halign: 'center',
+          valign: 'middle',
+        },
+        columnStyles: {
+          0: { halign: 'center', cellWidth: 7 },
+          1: { halign: 'center', fontStyle: 'bold', cellWidth: 8 },
+          2: { halign: 'left', fontStyle: 'bold', cellWidth: 38 },
+          3: { halign: 'left', cellWidth: 30 },
+          4: { halign: 'center', cellWidth: 13 },
+          5: { halign: 'right', cellWidth: 15 },
+          6: { halign: 'right', cellWidth: 17 },
+          7: { halign: 'right', cellWidth: 18 },
+          8: { halign: 'right', cellWidth: 19 },
+          9: { halign: 'right', cellWidth: 21 },
+        },
+        footStyles: {
+          fillColor: [240, 236, 228],
+          textColor: [28, 30, 33],
+          fontStyle: 'bold',
+          fontSize: 7,
+        },
+        bodyStyles: {
+          fontSize: 6.8,
+          textColor: [30, 30, 30],
+          cellPadding: 1.5,
+        },
+        alternateRowStyles: {
+          fillColor: [253, 252, 250],
+        },
+      });
+    }
 
     // @ts-ignore
     currentY = doc.lastAutoTable.finalY + 6;
 
-    // Check if new page is needed for Financial Summary and Steps
     if (currentY > 210) {
       doc.addPage();
       currentY = 16;
     }
 
-    // --- ESTRUCTURA DE COSTOS Y PRECIOS CERRADOS ---
+    // --- SECCIÓN 2: ESTRUCTURA DE COSTOS / RENDIMIENTO ---
     doc.setTextColor(28, 30, 33);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
-    doc.text('2. ESTRUCTURA DE COSTOS Y PRECIO REAL DE VENTA', margin, currentY);
 
-    currentY += 3;
+    if (recipe.tipoReceta === 'lote') {
+      doc.text('2. ESTRUCTURA DE RENDIMIENTO Y COSTO UNITARIO DE PRODUCCIÓN', margin, currentY);
+      currentY += 3;
 
-    // Draw Cost Structure Box (Left 50%)
-    const boxWidth = (contentWidth - 6) / 2;
-    doc.setFillColor(250, 248, 245);
-    doc.setDrawColor(221, 213, 199);
-    doc.roundedRect(margin, currentY, boxWidth, 44, 2, 2, 'FD');
+      const boxWidth = (contentWidth - 6) / 2;
+      doc.setFillColor(250, 248, 245);
+      doc.setDrawColor(221, 213, 199);
+      doc.roundedRect(margin, currentY, boxWidth, 44, 2, 2, 'FD');
 
-    doc.setFontSize(7.2);
-    doc.setTextColor(70, 70, 70);
-    doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.2);
+      doc.setTextColor(70, 70, 70);
+      doc.setFont('helvetica', 'normal');
 
-    let leftTextY = currentY + 5.5;
-    const addCostRow = (label: string, value: string, isBold = false) => {
-      doc.setFont('helvetica', isBold ? 'bold' : 'normal');
-      doc.setTextColor(isBold ? 20 : 70, isBold ? 20 : 70, isBold ? 20 : 70);
-      doc.text(label, margin + 4, leftTextY);
-      doc.text(value, margin + boxWidth - 4, leftTextY, { align: 'right' });
-      leftTextY += 5.2;
-    };
+      let leftTextY = currentY + 5.5;
+      const addRow = (label: string, value: string, isBold = false) => {
+        doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+        doc.setTextColor(isBold ? 20 : 70, isBold ? 20 : 70, isBold ? 20 : 70);
+        doc.text(label, margin + 4, leftTextY);
+        doc.text(value, margin + boxWidth - 4, leftTextY, { align: 'right' });
+        leftTextY += 5.2;
+      };
 
-    addCostRow('Costo Materia Prima Total:', formatCurrency(calculations.costoMateriaPrimaTotal));
-    addCostRow(`+ Margen de Error (${calculations.margenErrorPorcentaje}%):`, `+${formatCurrency(calculations.valorMargenError)}`);
-    addCostRow(`+ Merma de Cocción/Prod. (${calculations.mermaPorcentaje}%):`, formatCurrency(calculations.costoConMerma));
-    addCostRow(`Margen de Utilidad Deseado:`, `${100 - calculations.porcentajeCosto}%`);
-    addCostRow(`% Food Cost (Costo Materia Prima):`, `${calculations.porcentajeCosto}%`);
-    addCostRow(`Precio Base (Costo ÷ % Food Cost):`, formatCurrency(calculations.precioVenta));
-    addCostRow(`+ Impoconsumo (${recipe.impoconsumoActivo ? `${recipe.impoconsumoPorcentaje}%` : '0%'}):`, formatCurrency(calculations.valorImpoconsumo));
+      addRow('Costo Insumos del Lote:', formatCurrency(calculations.costoMateriaPrimaTotal));
+      addRow('Costos Adicionales (Energía/Mano Obra):', formatCurrency(calculations.costosAdicionalesProduccion || 0));
+      addRow('Costo Total Producción Lote:', formatCurrency(calculations.costoTotalProduccionLote || calculations.costoTotalLote || calculations.costoMateriaPrimaTotal), true);
+      if (recipe.batchYield?.notasRendimiento) {
+        addRow('Mermas / Reducción:', recipe.batchYield.notasRendimiento);
+      }
+      addRow('Rendimiento Real Obtenido:', `${calculations.rendimientoFinal?.toLocaleString('es-CO')} ${calculations.unidadRendimiento}`, true);
 
-    // Draw PRECIO REAL DE VENTA Box (Right 50% - High Visual Accent)
-    const rightBoxX = margin + boxWidth + 6;
-    doc.setFillColor(36, 42, 36); // #242A24
-    doc.setDrawColor(140, 122, 91); // #8C7A5B
-    doc.setLineWidth(0.6);
-    doc.roundedRect(rightBoxX, currentY, boxWidth, 44, 2, 2, 'FD');
+      // Right box: Unit cost metrics
+      const rightBoxX = margin + boxWidth + 6;
+      doc.setFillColor(36, 42, 36);
+      doc.setDrawColor(180, 83, 9);
+      doc.setLineWidth(0.6);
+      doc.roundedRect(rightBoxX, currentY, boxWidth, 44, 2, 2, 'FD');
 
-    doc.setTextColor(209, 189, 155);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7.5);
-    doc.text('DOCUMENTO OFICIAL DE VENTA (PRECIOS CERRADOS)', rightBoxX + 4, currentY + 6);
+      doc.setTextColor(245, 158, 11);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.text('COSTO UNITARIO DE TRANSFERENCIA', rightBoxX + 4, currentY + 6);
 
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(10);
-    doc.text('PRECIO REAL DE VENTA', rightBoxX + 4, currentY + 12);
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(9.5);
+      doc.text('VALOR POR UNIDAD DE RENDIMIENTO', rightBoxX + 4, currentY + 12);
 
-    // Total Lot Box
-    doc.setFillColor(50, 58, 50);
-    doc.roundedRect(rightBoxX + 4, currentY + 15, (boxWidth - 12) / 2, 16, 1, 1, 'F');
-    doc.setTextColor(209, 189, 155);
-    doc.setFontSize(6.5);
-    doc.text(`TOTAL ${recipe.pax} PAX:`, rightBoxX + 6, currentY + 20);
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.text(formatCurrency(calculations.precioRealVenta), rightBoxX + 6, currentY + 27);
+      // Unit metric box
+      doc.setFillColor(50, 58, 50);
+      doc.roundedRect(rightBoxX + 4, currentY + 15, (boxWidth - 12) / 2, 16, 1, 1, 'F');
+      doc.setTextColor(245, 158, 11);
+      doc.setFontSize(6.5);
+      doc.text(`POR 1 ${calculations.unidadRendimiento?.toUpperCase()}:`, rightBoxX + 6, currentY + 20);
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text(formatCurrency(calculations.costoPorUnidadMinima || 0), rightBoxX + 6, currentY + 27);
 
-    // Carta 1 PAX Box (Highlighted)
-    const cartaX = rightBoxX + 4 + (boxWidth - 12) / 2 + 4;
-    doc.setFillColor(60, 52, 40);
-    doc.roundedRect(cartaX, currentY + 15, (boxWidth - 12) / 2, 16, 1, 1, 'F');
-    doc.setTextColor(238, 216, 174);
-    doc.setFontSize(6.5);
-    doc.text('POR 1 PAX (CARTA):', cartaX + 2, currentY + 20);
-    doc.setFontSize(11);
-    doc.text(formatCurrency(calculations.precioRealVentaPorPax), cartaX + 2, currentY + 27);
+      // Liter / Kg box
+      const mayorX = rightBoxX + 4 + (boxWidth - 12) / 2 + 4;
+      doc.setFillColor(60, 52, 40);
+      doc.roundedRect(mayorX, currentY + 15, (boxWidth - 12) / 2, 16, 1, 1, 'F');
+      doc.setTextColor(245, 158, 11);
+      doc.setFontSize(6.5);
+      doc.text(`POR 1 ${calculations.unidadRendimiento === 'ml' ? 'LITRO' : 'KG'}:`, mayorX + 2, currentY + 20);
+      doc.setFontSize(11);
+      doc.text(formatCurrency(calculations.costoPorUnidadMayor || 0), mayorX + 2, currentY + 27);
 
-    // Redondeo Note below
-    doc.setTextColor(200, 200, 200);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(6);
-    doc.text(
-      `Redondeo a millar cerrado: 13.100-13.400 -> 13.000 | 13.500-13.900 -> 14.000`,
-      rightBoxX + 4,
-      currentY + 36
-    );
+      doc.setTextColor(200, 200, 200);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6);
+      doc.text(
+        'Base culinaria intermedia. No aplica margen comercial ni impoconsumo.',
+        rightBoxX + 4,
+        currentY + 36
+      );
 
-    currentY += 46;
+      currentY += 46;
+    } else {
+      doc.text('2. ESTRUCTURA DE COSTOS Y PRECIO REAL DE VENTA', margin, currentY);
+      currentY += 3;
+
+      // Draw Cost Structure Box (Left 50%)
+      const boxWidth = (contentWidth - 6) / 2;
+      doc.setFillColor(250, 248, 245);
+      doc.setDrawColor(221, 213, 199);
+      doc.roundedRect(margin, currentY, boxWidth, 44, 2, 2, 'FD');
+
+      doc.setFontSize(7.2);
+      doc.setTextColor(70, 70, 70);
+      doc.setFont('helvetica', 'normal');
+
+      let leftTextY = currentY + 5.5;
+      const addCostRow = (label: string, value: string, isBold = false) => {
+        doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+        doc.setTextColor(isBold ? 20 : 70, isBold ? 20 : 70, isBold ? 20 : 70);
+        doc.text(label, margin + 4, leftTextY);
+        doc.text(value, margin + boxWidth - 4, leftTextY, { align: 'right' });
+        leftTextY += 5.2;
+      };
+
+      addCostRow('Costo Materia Prima Total:', formatCurrency(calculations.costoMateriaPrimaTotal));
+      addCostRow(`+ Margen de Error (${calculations.margenErrorPorcentaje}%):`, `+${formatCurrency(calculations.valorMargenError)}`);
+      addCostRow(`+ Merma de Cocción/Prod. (${calculations.mermaPorcentaje}%):`, formatCurrency(calculations.costoConMerma));
+      addCostRow(`Margen de Utilidad Deseado:`, `${100 - calculations.porcentajeCosto}%`);
+      addCostRow(`% Food Cost (Costo Materia Prima):`, `${calculations.porcentajeCosto}%`);
+      addCostRow(`Precio Base (Costo ÷ % Food Cost):`, formatCurrency(calculations.precioVenta));
+      addCostRow(`+ Impoconsumo (${recipe.impoconsumoActivo ? `${recipe.impoconsumoPorcentaje}%` : '0%'}):`, formatCurrency(calculations.valorImpoconsumo));
+
+      // Draw PRECIO REAL DE VENTA Box (Right 50% - High Visual Accent)
+      const rightBoxX = margin + boxWidth + 6;
+      doc.setFillColor(36, 42, 36); // #242A24
+      doc.setDrawColor(140, 122, 91); // #8C7A5B
+      doc.setLineWidth(0.6);
+      doc.roundedRect(rightBoxX, currentY, boxWidth, 44, 2, 2, 'FD');
+
+      doc.setTextColor(209, 189, 155);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.text('DOCUMENTO OFICIAL DE VENTA (PRECIOS CERRADOS)', rightBoxX + 4, currentY + 6);
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(10);
+      doc.text('PRECIO REAL DE VENTA', rightBoxX + 4, currentY + 12);
+
+      // Total Lot Box
+      doc.setFillColor(50, 58, 50);
+      doc.roundedRect(rightBoxX + 4, currentY + 15, (boxWidth - 12) / 2, 16, 1, 1, 'F');
+      doc.setTextColor(209, 189, 155);
+      doc.setFontSize(6.5);
+      doc.text(`TOTAL ${recipe.pax} PAX:`, rightBoxX + 6, currentY + 20);
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text(formatCurrency(calculations.precioRealVenta), rightBoxX + 6, currentY + 27);
+
+      // Carta 1 PAX Box (Highlighted)
+      const cartaX = rightBoxX + 4 + (boxWidth - 12) / 2 + 4;
+      doc.setFillColor(60, 52, 40);
+      doc.roundedRect(cartaX, currentY + 15, (boxWidth - 12) / 2, 16, 1, 1, 'F');
+      doc.setTextColor(238, 216, 174);
+      doc.setFontSize(6.5);
+      doc.text('POR 1 PAX (CARTA):', cartaX + 2, currentY + 20);
+      doc.setFontSize(11);
+      doc.text(formatCurrency(calculations.precioRealVentaPorPax), cartaX + 2, currentY + 27);
+
+      // Redondeo Note below
+      doc.setTextColor(200, 200, 200);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6);
+      doc.text(
+        `Redondeo a millar cerrado: 13.100-13.400 -> 13.000 | 13.500-13.900 -> 14.000`,
+        rightBoxX + 4,
+        currentY + 36
+      );
+
+      currentY += 46;
+    }
 
     // --- PASO A PASO DE TÉCNICA APLICADA ---
     if (currentY > 220) {

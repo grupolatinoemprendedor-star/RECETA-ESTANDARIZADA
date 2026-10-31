@@ -80,12 +80,25 @@ export const RecipeSheetView: React.FC<RecipeSheetViewProps> = ({
             </div>
 
             <div className="text-right flex flex-col sm:items-end">
-              <span className="px-3 py-1 rounded bg-[#242A24] text-[#FAF8F5] font-mono text-xs font-bold tracking-wider inline-block">
-                NO. PAX: {recipe.pax}
-              </span>
-              <span className="text-[10px] text-stone-400 mt-1 font-mono">
-                Porciones calculadas: {recipe.pax} raciones
-              </span>
+              {recipe.tipoReceta === 'lote' ? (
+                <>
+                  <span className="px-3 py-1 rounded bg-amber-900 text-amber-100 font-mono text-xs font-bold tracking-wider inline-block">
+                    RENDIMIENTO: {calculations.rendimientoFinal?.toLocaleString('es-CO')} {calculations.unidadRendimiento}
+                  </span>
+                  <span className="text-[10px] text-stone-500 mt-1 font-mono uppercase font-semibold">
+                    PREPARACIÓN BASE · {recipe.categoriaBase?.toUpperCase() || 'FONDO'}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="px-3 py-1 rounded bg-[#242A24] text-[#FAF8F5] font-mono text-xs font-bold tracking-wider inline-block">
+                    NO. PAX: {recipe.pax}
+                  </span>
+                  <span className="text-[10px] text-stone-400 mt-1 font-mono">
+                    Porciones calculadas: {recipe.pax} raciones
+                  </span>
+                </>
+              )}
             </div>
           </div>
 
@@ -94,7 +107,7 @@ export const RecipeSheetView: React.FC<RecipeSheetViewProps> = ({
             <div className="md:col-span-8 space-y-4">
               <div>
                 <span className="text-[11px] font-mono uppercase tracking-wider text-[#8C7A5B] font-bold block mb-1">
-                  Nombre del Plato / Preparación
+                  {recipe.tipoReceta === 'lote' ? 'Nombre de la Preparación Base' : 'Nombre del Plato / Preparación'}
                 </span>
                 <h2 className="font-editorial text-2xl sm:text-4xl font-bold text-[#1C1E21] leading-tight">
                   {recipe.nombre || 'Receta Estándar'}
@@ -152,218 +165,395 @@ export const RecipeSheetView: React.FC<RecipeSheetViewProps> = ({
               1. TABLA PRINCIPAL DE INGREDIENTES
             </h3>
             <span className="font-mono text-xs text-stone-500">
-              Cálculo para {recipe.pax} PAX
+              {recipe.tipoReceta === 'lote'
+                ? `Lote de producción: ${calculations.rendimientoFinal?.toLocaleString('es-CO')} ${calculations.unidadRendimiento}`
+                : `Cálculo para ${recipe.pax} PAX`}
             </span>
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse border border-[#DDD5C7]">
-              <thead>
-                <tr className="bg-[#242A24] text-white text-[10px] font-bold uppercase tracking-wider">
-                  <th className="py-2.5 px-2 text-center border border-stone-700 w-12">ITEMS</th>
-                  <th className="py-2.5 px-2 text-center border border-stone-700 w-12" title="Grupo de Inventario">
-                    G.I
-                  </th>
-                  <th className="py-2.5 px-3 border border-stone-700">INGREDIENTES</th>
-                  <th className="py-2.5 px-3 border border-stone-700">MISE EN PLACE INGREDIENTE</th>
-                  <th className="py-2.5 px-2 text-center border border-stone-700 w-24">UNIDAD</th>
-                  <th className="py-2.5 px-2 text-right border border-stone-700 w-24">CANT. X 1 PAX</th>
-                  <th className="py-2.5 px-2 text-right border border-stone-700 w-28 bg-[#2F362F] text-[#D1BD9B]">
-                    CANT. TOTAL ({recipe.pax} PAX)
-                  </th>
-                  <th className="py-2.5 px-2 text-right border border-stone-700 w-28">VALOR MÍNIMO</th>
-                  <th className="py-2.5 px-2 text-right border border-stone-700 w-28 bg-[#2F362F] text-[#D1BD9B]">
-                    VALOR X 1 PAX
-                  </th>
-                  <th className="py-2.5 px-3 text-right border border-stone-700 w-32 bg-[#3A433A]">
-                    VALOR TOTAL
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="text-xs divide-y divide-[#EAE4D9]">
-                {calculations.ingredientesCalculados.map((item, idx) => (
-                  <tr
-                    key={idx}
-                    className={`avoid-break ${idx % 2 === 0 ? 'bg-white' : 'bg-[#FAF8F5]'}`}
-                  >
-                    <td className="py-2 px-2 text-center font-mono font-bold text-stone-600 border border-[#E8E2D5]">
-                      #{String(item.item).padStart(2, '0')}
+            {recipe.tipoReceta === 'lote' ? (
+              /* TABLA MODO LOTE (8 COLUMNAS) */
+              <table className="w-full text-left border-collapse border border-[#DDD5C7]">
+                <thead>
+                  <tr className="bg-[#242A24] text-white text-[10px] font-bold uppercase tracking-wider">
+                    <th className="py-2.5 px-2 text-center border border-stone-700 w-12">ITEMS</th>
+                    <th className="py-2.5 px-2 text-center border border-stone-700 w-12" title="Grupo de Inventario">
+                      G.I
+                    </th>
+                    <th className="py-2.5 px-3 border border-stone-700">INGREDIENTES DEL LOTE</th>
+                    <th className="py-2.5 px-3 border border-stone-700">MISE EN PLACE</th>
+                    <th className="py-2.5 px-2 text-center border border-stone-700 w-24">UNIDAD</th>
+                    <th className="py-2.5 px-2 text-right border border-stone-700 w-32 bg-[#2F362F] text-[#D1BD9B]">
+                      CANTIDAD LOTE
+                    </th>
+                    <th className="py-2.5 px-2 text-right border border-stone-700 w-32">VALOR MÍNIMO</th>
+                    <th className="py-2.5 px-3 text-right border border-stone-700 w-36 bg-[#3A433A]">
+                      VALOR TOTAL
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="text-xs divide-y divide-[#EAE4D9]">
+                  {calculations.ingredientesCalculados.map((item, idx) => (
+                    <tr
+                      key={idx}
+                      className={`avoid-break ${idx % 2 === 0 ? 'bg-white' : 'bg-[#FAF8F5]'}`}
+                    >
+                      <td className="py-2 px-2 text-center font-mono font-bold text-stone-600 border border-[#E8E2D5]">
+                        #{String(item.item).padStart(2, '0')}
+                      </td>
+                      <td className="py-2 px-1 text-center border border-[#E8E2D5]">
+                        {item.grupoInventario ? (
+                          <span
+                            className={`inline-block font-mono font-bold text-[11px] px-1.5 py-0.5 rounded border ${
+                              GRUPO_INVENTARIO_CONFIG[item.grupoInventario].colorBg
+                            } ${GRUPO_INVENTARIO_CONFIG[item.grupoInventario].colorText} ${
+                              GRUPO_INVENTARIO_CONFIG[item.grupoInventario].colorBorder
+                            }`}
+                          >
+                            {GRUPO_INVENTARIO_CONFIG[item.grupoInventario].label}
+                          </span>
+                        ) : (
+                          <span className="text-stone-300 font-mono text-[11px]">—</span>
+                        )}
+                      </td>
+                      <td className="py-2 px-3 font-semibold text-[#1C1E21] border border-[#E8E2D5]">
+                        {item.ingrediente || '—'}
+                      </td>
+                      <td className="py-2 px-3 text-stone-600 italic border border-[#E8E2D5]">
+                        {item.miseEnPlace || '—'}
+                      </td>
+                      <td className="py-2 px-2 text-center border border-[#E8E2D5] font-medium">
+                        {item.unidad}
+                      </td>
+                      <td className="py-2 px-2 text-right font-mono font-bold border border-[#E8E2D5] bg-[#F5F2EA]/40">
+                        {formatQuantity(item.cantidadTotal)}
+                      </td>
+                      <td className="py-2 px-2 text-right font-mono border border-[#E8E2D5] text-stone-600">
+                        {formatCurrency(item.valorUnidadMinima)}
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono font-bold border border-[#E8E2D5] bg-[#EFEBE3]/60 text-[#1C1E21]">
+                        {formatCurrency(item.valorTotal)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-[#EFEBE4] font-mono text-xs font-bold text-[#1C1E21] border-t-2 border-[#1C1E21]">
+                    <td colSpan={5} className="py-2.5 px-3 text-right uppercase border border-[#DDD5C7]">
+                      COSTO TOTAL MATERIA PRIMA DEL LOTE ({calculations.ingredientesCalculados.length} INSUMOS):
                     </td>
-                    <td className="py-2 px-1 text-center border border-[#E8E2D5]">
-                      {item.grupoInventario ? (
-                        <span
-                          className={`inline-block font-mono font-bold text-[11px] px-1.5 py-0.5 rounded border ${
-                            GRUPO_INVENTARIO_CONFIG[item.grupoInventario].colorBg
-                          } ${GRUPO_INVENTARIO_CONFIG[item.grupoInventario].colorText} ${
-                            GRUPO_INVENTARIO_CONFIG[item.grupoInventario].colorBorder
-                          }`}
-                          title={`${GRUPO_INVENTARIO_CONFIG[item.grupoInventario].nombre} (${item.grupoInventario})`}
-                        >
-                          {GRUPO_INVENTARIO_CONFIG[item.grupoInventario].label}
-                        </span>
-                      ) : (
-                        <span className="text-stone-300 font-mono text-[11px]">—</span>
-                      )}
-                    </td>
-                    <td className="py-2 px-3 font-semibold text-[#1C1E21] border border-[#E8E2D5]">
-                      {item.ingrediente || '—'}
-                    </td>
-                    <td className="py-2 px-3 text-stone-600 italic border border-[#E8E2D5]">
-                      {item.miseEnPlace || '—'}
-                    </td>
-                    <td className="py-2 px-2 text-center border border-[#E8E2D5] font-medium">
-                      {item.unidad}
-                    </td>
-                    <td className="py-2 px-2 text-right font-mono border border-[#E8E2D5]">
-                      {formatQuantity(item.cantidadPorPax)}
-                    </td>
-                    <td className="py-2 px-2 text-right font-mono font-bold border border-[#E8E2D5] bg-[#F5F2EA]/40">
-                      {formatQuantity(item.cantidadTotal)}
-                    </td>
-                    <td className="py-2 px-2 text-right font-mono border border-[#E8E2D5] text-stone-600">
-                      {formatCurrency(item.valorUnidadMinima)}
-                    </td>
-                    <td className="py-2 px-2 text-right font-mono font-semibold border border-[#E8E2D5] bg-[#F5F2EA]/40">
-                      {formatCurrency(item.valorPorPax)}
-                    </td>
-                    <td className="py-2 px-3 text-right font-mono font-bold border border-[#E8E2D5] bg-[#EFEBE3]/60 text-[#1C1E21]">
-                      {formatCurrency(item.valorTotal)}
+                    <td className="py-2.5 px-2 text-right border border-[#DDD5C7] text-stone-400">—</td>
+                    <td className="py-2.5 px-2 text-right border border-[#DDD5C7] text-stone-400">—</td>
+                    <td className="py-2.5 px-3 text-right border border-[#DDD5C7] text-sm text-[#1C1E21] bg-[#DDD5C7]">
+                      {formatCurrency(calculations.costoMateriaPrimaTotal)}
                     </td>
                   </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="bg-[#EFEBE4] font-mono text-xs font-bold text-[#1C1E21] border-t-2 border-[#1C1E21]">
-                  <td colSpan={5} className="py-2.5 px-3 text-right uppercase border border-[#DDD5C7]">
-                    COSTO TOTAL DE MATERIA PRIMA ({calculations.ingredientesCalculados.length} ITEMS):
-                  </td>
-                  <td className="py-2.5 px-2 text-right border border-[#DDD5C7] text-stone-400">—</td>
-                  <td className="py-2.5 px-2 text-right border border-[#DDD5C7] text-stone-400">—</td>
-                  <td className="py-2.5 px-2 text-right border border-[#DDD5C7] text-stone-400">—</td>
-                  <td className="py-2.5 px-2 text-right border border-[#DDD5C7] text-stone-900 bg-[#E6DFD4]">
-                    {formatCurrency(calculations.costoMateriaPrimaPorPax)}
-                  </td>
-                  <td className="py-2.5 px-3 text-right border border-[#DDD5C7] text-sm text-[#1C1E21] bg-[#DDD5C7]">
-                    {formatCurrency(calculations.costoMateriaPrimaTotal)}
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
+                </tfoot>
+              </table>
+            ) : (
+              /* TABLA MODO PORCIONES (10 COLUMNAS ORIGINALES INTACTAS) */
+              <table className="w-full text-left border-collapse border border-[#DDD5C7]">
+                <thead>
+                  <tr className="bg-[#242A24] text-white text-[10px] font-bold uppercase tracking-wider">
+                    <th className="py-2.5 px-2 text-center border border-stone-700 w-12">ITEMS</th>
+                    <th className="py-2.5 px-2 text-center border border-stone-700 w-12" title="Grupo de Inventario">
+                      G.I
+                    </th>
+                    <th className="py-2.5 px-3 border border-stone-700">INGREDIENTES</th>
+                    <th className="py-2.5 px-3 border border-stone-700">MISE EN PLACE INGREDIENTE</th>
+                    <th className="py-2.5 px-2 text-center border border-stone-700 w-24">UNIDAD</th>
+                    <th className="py-2.5 px-2 text-right border border-stone-700 w-24">CANT. X 1 PAX</th>
+                    <th className="py-2.5 px-2 text-right border border-stone-700 w-28 bg-[#2F362F] text-[#D1BD9B]">
+                      CANT. TOTAL ({recipe.pax} PAX)
+                    </th>
+                    <th className="py-2.5 px-2 text-right border border-stone-700 w-28">VALOR MÍNIMO</th>
+                    <th className="py-2.5 px-2 text-right border border-stone-700 w-28 bg-[#2F362F] text-[#D1BD9B]">
+                      VALOR X 1 PAX
+                    </th>
+                    <th className="py-2.5 px-3 text-right border border-stone-700 w-32 bg-[#3A433A]">
+                      VALOR TOTAL
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="text-xs divide-y divide-[#EAE4D9]">
+                  {calculations.ingredientesCalculados.map((item, idx) => (
+                    <tr
+                      key={idx}
+                      className={`avoid-break ${idx % 2 === 0 ? 'bg-white' : 'bg-[#FAF8F5]'}`}
+                    >
+                      <td className="py-2 px-2 text-center font-mono font-bold text-stone-600 border border-[#E8E2D5]">
+                        #{String(item.item).padStart(2, '0')}
+                      </td>
+                      <td className="py-2 px-1 text-center border border-[#E8E2D5]">
+                        {item.grupoInventario ? (
+                          <span
+                            className={`inline-block font-mono font-bold text-[11px] px-1.5 py-0.5 rounded border ${
+                              GRUPO_INVENTARIO_CONFIG[item.grupoInventario].colorBg
+                            } ${GRUPO_INVENTARIO_CONFIG[item.grupoInventario].colorText} ${
+                              GRUPO_INVENTARIO_CONFIG[item.grupoInventario].colorBorder
+                            }`}
+                            title={`${GRUPO_INVENTARIO_CONFIG[item.grupoInventario].nombre} (${item.grupoInventario})`}
+                          >
+                            {GRUPO_INVENTARIO_CONFIG[item.grupoInventario].label}
+                          </span>
+                        ) : (
+                          <span className="text-stone-300 font-mono text-[11px]">—</span>
+                        )}
+                      </td>
+                      <td className="py-2 px-3 font-semibold text-[#1C1E21] border border-[#E8E2D5]">
+                        {item.ingrediente || '—'}
+                      </td>
+                      <td className="py-2 px-3 text-stone-600 italic border border-[#E8E2D5]">
+                        {item.miseEnPlace || '—'}
+                      </td>
+                      <td className="py-2 px-2 text-center border border-[#E8E2D5] font-medium">
+                        {item.unidad}
+                      </td>
+                      <td className="py-2 px-2 text-right font-mono border border-[#E8E2D5]">
+                        {formatQuantity(item.cantidadPorPax)}
+                      </td>
+                      <td className="py-2 px-2 text-right font-mono font-bold border border-[#E8E2D5] bg-[#F5F2EA]/40">
+                        {formatQuantity(item.cantidadTotal)}
+                      </td>
+                      <td className="py-2 px-2 text-right font-mono border border-[#E8E2D5] text-stone-600">
+                        {formatCurrency(item.valorUnidadMinima)}
+                      </td>
+                      <td className="py-2 px-2 text-right font-mono font-semibold border border-[#E8E2D5] bg-[#F5F2EA]/40">
+                        {formatCurrency(item.valorPorPax)}
+                      </td>
+                      <td className="py-2 px-3 text-right font-mono font-bold border border-[#E8E2D5] bg-[#EFEBE3]/60 text-[#1C1E21]">
+                        {formatCurrency(item.valorTotal)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-[#EFEBE4] font-mono text-xs font-bold text-[#1C1E21] border-t-2 border-[#1C1E21]">
+                    <td colSpan={5} className="py-2.5 px-3 text-right uppercase border border-[#DDD5C7]">
+                      COSTO TOTAL DE MATERIA PRIMA ({calculations.ingredientesCalculados.length} ITEMS):
+                    </td>
+                    <td className="py-2.5 px-2 text-right border border-[#DDD5C7] text-stone-400">—</td>
+                    <td className="py-2.5 px-2 text-right border border-[#DDD5C7] text-stone-400">—</td>
+                    <td className="py-2.5 px-2 text-right border border-[#DDD5C7] text-stone-400">—</td>
+                    <td className="py-2.5 px-2 text-right border border-[#DDD5C7] text-stone-900 bg-[#E6DFD4]">
+                      {formatCurrency(calculations.costoMateriaPrimaPorPax)}
+                    </td>
+                    <td className="py-2.5 px-3 text-right border border-[#DDD5C7] text-sm text-[#1C1E21] bg-[#DDD5C7]">
+                      {formatCurrency(calculations.costoMateriaPrimaTotal)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            )}
           </div>
         </section>
 
         {/* 2. Financial Summary Block */}
         <section className="mb-8 avoid-break">
-          <div className="flex items-center justify-between pb-2 mb-3 border-b border-[#DDD5C7]">
-            <h3 className="font-editorial text-base sm:text-lg font-bold tracking-tight uppercase text-[#1C1E21]">
-              2. RESUMEN FINANCIERO Y COSTEO TÉCNICO
-            </h3>
-            <span className="font-mono text-xs text-stone-500">Moneda: COP</span>
-          </div>
+          {recipe.tipoReceta === 'lote' ? (
+            /* RESUMEN DE RENDIMIENTO Y COSTO UNITARIO PARA BASES */
+            <div>
+              <div className="flex items-center justify-between pb-2 mb-3 border-b border-[#DDD5C7]">
+                <h3 className="font-editorial text-base sm:text-lg font-bold tracking-tight uppercase text-[#1C1E21]">
+                  2. ESTRUCTURA DE RENDIMIENTO Y COSTO UNITARIO DE PRODUCCIÓN
+                </h3>
+                <span className="font-mono text-xs text-amber-800 font-semibold">PREPARACIÓN BASE (USO INTERMEDIO)</span>
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Table of breakdown */}
-            <div className="border border-[#DDD5C7] rounded-lg overflow-hidden">
-              <table className="w-full text-xs">
-                <tbody className="divide-y divide-[#EAE4D9]">
-                  <tr className="bg-white">
-                    <td className="py-2 px-3 font-medium text-stone-600">Costo Total Materia Prima:</td>
-                    <td className="py-2 px-3 text-right font-mono font-bold text-stone-800">
-                      {formatCurrency(calculations.costoMateriaPrimaTotal)}
-                    </td>
-                  </tr>
-                  <tr className="bg-[#FAF8F5]">
-                    <td className="py-2 px-3 font-medium text-stone-600">
-                      + Margen de Error ({calculations.margenErrorPorcentaje}%):
-                    </td>
-                    <td className="py-2 px-3 text-right font-mono text-stone-700">
-                      +{formatCurrency(calculations.valorMargenError)} (Total: {formatCurrency(calculations.costoConMargenError)})
-                    </td>
-                  </tr>
-                  <tr className="bg-white">
-                    <td className="py-2 px-3 font-medium text-stone-600">
-                      Merma de Producción / Cocción ({calculations.mermaPorcentaje}%):
-                    </td>
-                    <td className="py-2 px-3 text-right font-mono text-stone-700">
-                      {calculations.mermaPorcentaje}% (Factor: 1 − {(calculations.mermaPorcentaje / 100).toFixed(2)})
-                    </td>
-                  </tr>
-                  <tr className="bg-[#FAF8F5]">
-                    <td className="py-2 px-3 font-semibold text-stone-800">Costo con Merma:</td>
-                    <td className="py-2 px-3 text-right font-mono font-bold text-stone-900">
-                      {formatCurrency(calculations.costoConMerma)}
-                    </td>
-                  </tr>
-                  <tr className="bg-[#FAF8F5]">
-                    <td className="py-2 px-3 font-medium text-stone-600">
-                      Margen de Utilidad / Food Cost:
-                    </td>
-                    <td className="py-2 px-3 text-right font-mono text-stone-800">
-                      <span className="font-bold text-[#8C7A5B]">{100 - calculations.porcentajeCosto}% Utilidad</span>
-                      <span className="text-stone-500 mx-1">/</span>
-                      <span>{calculations.porcentajeCosto}% Costo</span>
-                    </td>
-                  </tr>
-                  <tr className="bg-white">
-                    <td className="py-2 px-3 font-medium text-stone-600">Precio de Venta Base:</td>
-                    <td className="py-2 px-3 text-right font-mono font-semibold text-stone-800">
-                      {formatCurrency(calculations.precioVenta)}
-                    </td>
-                  </tr>
-                  <tr className="bg-[#FAF8F5]">
-                    <td className="py-2 px-3 font-medium text-stone-600">
-                      Impoconsumo ({calculations.impoconsumoActivo ? `${calculations.impoconsumoPorcentaje}%` : 'NO'}):
-                    </td>
-                    <td className="py-2 px-3 text-right font-mono font-semibold text-stone-800">
-                      {formatCurrency(calculations.valorImpoconsumo)}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="border border-[#DDD5C7] rounded-lg overflow-hidden">
+                  <table className="w-full text-xs">
+                    <tbody className="divide-y divide-[#EAE4D9]">
+                      <tr className="bg-white">
+                        <td className="py-2 px-3 font-medium text-stone-600">Costo Insumos del Lote:</td>
+                        <td className="py-2 px-3 text-right font-mono font-bold text-stone-800">
+                          {formatCurrency(calculations.costoMateriaPrimaTotal)}
+                        </td>
+                      </tr>
+                      {(calculations.costosAdicionalesProduccion || 0) > 0 && (
+                        <tr className="bg-[#FAF8F5]">
+                          <td className="py-2 px-3 font-medium text-stone-600">Costos Adicionales (Cocción / Energía):</td>
+                          <td className="py-2 px-3 text-right font-mono text-stone-700">
+                            +{formatCurrency(calculations.costosAdicionalesProduccion || 0)}
+                          </td>
+                        </tr>
+                      )}
+                      <tr className="bg-[#FAF8F5]">
+                        <td className="py-2 px-3 font-semibold text-stone-800">Costo Total del Lote:</td>
+                        <td className="py-2 px-3 text-right font-mono font-bold text-stone-900">
+                          {formatCurrency(calculations.costoTotalProduccionLote || calculations.costoTotalLote || calculations.costoMateriaPrimaTotal)}
+                        </td>
+                      </tr>
+                      {recipe.batchYield?.notasRendimiento && (
+                        <tr className="bg-amber-50/50">
+                          <td className="py-2 px-3 font-medium text-amber-900">Mermas / Reducción:</td>
+                          <td className="py-2 px-3 text-right font-mono text-amber-900 text-xs italic">
+                            {recipe.batchYield.notasRendimiento}
+                          </td>
+                        </tr>
+                      )}
+                      <tr className="bg-[#EFEBE4]">
+                        <td className="py-2 px-3 font-bold text-stone-900">Rendimiento Real Obtenido:</td>
+                        <td className="py-2 px-3 text-right font-mono font-bold text-stone-900 text-sm">
+                          {calculations.rendimientoFinal?.toLocaleString('es-CO')} {calculations.unidadRendimiento}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
 
-            {/* High visual block */}
-            <div className="bg-[#242A24] text-white rounded-lg p-4 sm:p-5 flex flex-col justify-between border-2 border-[#8C7A5B]">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono tracking-widest text-[#D1BD9B] uppercase font-bold">
-                    Documento Oficial de Venta
-                  </span>
-                  {calculations.preciosRedondeados && (
-                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#D1BD9B] text-[#1C1E21] font-bold">
-                      PRECIOS CERRADOS
+                {/* Card de Costos Unitarios */}
+                <div className="bg-[#242A24] text-white rounded-lg p-4 sm:p-5 flex flex-col justify-between border-2 border-amber-600">
+                  <div>
+                    <span className="text-[10px] font-mono tracking-widest text-amber-300 uppercase font-bold">
+                      Costo Unitario de Transferencia
                     </span>
-                  )}
-                </div>
-                <div className="font-editorial text-xl sm:text-2xl font-bold uppercase tracking-tight text-white mt-1">
-                  PRECIO REAL DE VENTA
-                </div>
-                <p className="text-[11px] text-stone-300 mt-1">
-                  Valor final al consumidor con merma técnica e impuestos aplicados.
-                </p>
-              </div>
+                    <div className="font-editorial text-xl font-bold uppercase tracking-tight text-white mt-1">
+                      VALOR POR UNIDAD DE RENDIMIENTO
+                    </div>
+                    <p className="text-[11px] text-stone-300 mt-1">
+                      Costo neto de insumo transferible a salsas y platos principales. No aplica margen comercial.
+                    </p>
+                  </div>
 
-              <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-white/20">
-                <div className="bg-white/10 p-2.5 rounded">
-                  <span className="text-[10px] font-mono text-[#D1BD9B] uppercase block">
-                    TOTAL {recipe.pax} PAX:
-                  </span>
-                  <span className="font-mono text-xl sm:text-2xl font-bold text-white block mt-0.5">
-                    {formatCurrency(calculations.precioRealVenta)}
-                  </span>
-                </div>
+                  <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-white/20">
+                    <div className="bg-white/10 p-2.5 rounded">
+                      <span className="text-[10px] font-mono text-amber-200 uppercase block">
+                        POR 1 {calculations.unidadRendimiento?.toUpperCase()}:
+                      </span>
+                      <span className="font-mono text-xl sm:text-2xl font-bold text-white block mt-0.5">
+                        {formatCurrency(calculations.costoPorUnidadMinima || 0)}
+                      </span>
+                    </div>
 
-                <div className="bg-[#8C7A5B]/30 border border-[#8C7A5B]/50 p-2.5 rounded">
-                  <span className="text-[10px] font-mono text-[#EED8AE] uppercase font-bold block">
-                    POR 1 PAX (CARTA):
-                  </span>
-                  <span className="font-mono text-xl sm:text-2xl font-bold text-[#FAF8F5] block mt-0.5 text-[#EED8AE]">
-                    {formatCurrency(calculations.precioRealVentaPorPax)}
-                  </span>
+                    <div className="bg-amber-900/40 border border-amber-600/50 p-2.5 rounded">
+                      <span className="text-[10px] font-mono text-amber-200 uppercase font-bold block">
+                        POR 1 {calculations.unidadRendimiento === 'ml' ? 'LITRO' : 'KG'}:
+                      </span>
+                      <span className="font-mono text-xl sm:text-2xl font-bold text-[#FAF8F5] block mt-0.5 text-amber-300">
+                        {formatCurrency(calculations.costoPorUnidadMayor || 0)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          ) : (
+            /* RESUMEN FINANCIERO COMERCIAL PARA PORCIONES (CONSERVADO 100%) */
+            <div>
+              <div className="flex items-center justify-between pb-2 mb-3 border-b border-[#DDD5C7]">
+                <h3 className="font-editorial text-base sm:text-lg font-bold tracking-tight uppercase text-[#1C1E21]">
+                  2. RESUMEN FINANCIERO Y COSTEO TÉCNICO
+                </h3>
+                <span className="font-mono text-xs text-stone-500">Moneda: COP</span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Table of breakdown */}
+                <div className="border border-[#DDD5C7] rounded-lg overflow-hidden">
+                  <table className="w-full text-xs">
+                    <tbody className="divide-y divide-[#EAE4D9]">
+                      <tr className="bg-white">
+                        <td className="py-2 px-3 font-medium text-stone-600">Costo Total Materia Prima:</td>
+                        <td className="py-2 px-3 text-right font-mono font-bold text-stone-800">
+                          {formatCurrency(calculations.costoMateriaPrimaTotal)}
+                        </td>
+                      </tr>
+                      <tr className="bg-[#FAF8F5]">
+                        <td className="py-2 px-3 font-medium text-stone-600">
+                          + Margen de Error ({calculations.margenErrorPorcentaje}%):
+                        </td>
+                        <td className="py-2 px-3 text-right font-mono text-stone-700">
+                          +{formatCurrency(calculations.valorMargenError)} (Total: {formatCurrency(calculations.costoConMargenError)})
+                        </td>
+                      </tr>
+                      <tr className="bg-white">
+                        <td className="py-2 px-3 font-medium text-stone-600">
+                          Merma de Producción / Cocción ({calculations.mermaPorcentaje}%):
+                        </td>
+                        <td className="py-2 px-3 text-right font-mono text-stone-700">
+                          {calculations.mermaPorcentaje}% (Factor: 1 − {(calculations.mermaPorcentaje / 100).toFixed(2)})
+                        </td>
+                      </tr>
+                      <tr className="bg-[#FAF8F5]">
+                        <td className="py-2 px-3 font-semibold text-stone-800">Costo con Merma:</td>
+                        <td className="py-2 px-3 text-right font-mono font-bold text-stone-900">
+                          {formatCurrency(calculations.costoConMerma)}
+                        </td>
+                      </tr>
+                      <tr className="bg-[#FAF8F5]">
+                        <td className="py-2 px-3 font-medium text-stone-600">
+                          Margen de Utilidad / Food Cost:
+                        </td>
+                        <td className="py-2 px-3 text-right font-mono text-stone-800">
+                          <span className="font-bold text-[#8C7A5B]">{100 - calculations.porcentajeCosto}% Utilidad</span>
+                          <span className="text-stone-500 mx-1">/</span>
+                          <span>{calculations.porcentajeCosto}% Costo</span>
+                        </td>
+                      </tr>
+                      <tr className="bg-white">
+                        <td className="py-2 px-3 font-medium text-stone-600">Precio de Venta Base:</td>
+                        <td className="py-2 px-3 text-right font-mono font-semibold text-stone-800">
+                          {formatCurrency(calculations.precioVenta)}
+                        </td>
+                      </tr>
+                      <tr className="bg-[#FAF8F5]">
+                        <td className="py-2 px-3 font-medium text-stone-600">
+                          Impoconsumo ({calculations.impoconsumoActivo ? `${calculations.impoconsumoPorcentaje}%` : 'NO'}):
+                        </td>
+                        <td className="py-2 px-3 text-right font-mono font-semibold text-stone-800">
+                          {formatCurrency(calculations.valorImpoconsumo)}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* High visual block */}
+                <div className="bg-[#242A24] text-white rounded-lg p-4 sm:p-5 flex flex-col justify-between border-2 border-[#8C7A5B]">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono tracking-widest text-[#D1BD9B] uppercase font-bold">
+                        Documento Oficial de Venta
+                      </span>
+                      {calculations.preciosRedondeados && (
+                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#D1BD9B] text-[#1C1E21] font-bold">
+                          PRECIOS CERRADOS
+                        </span>
+                      )}
+                    </div>
+                    <div className="font-editorial text-xl sm:text-2xl font-bold uppercase tracking-tight text-white mt-1">
+                      PRECIO REAL DE VENTA
+                    </div>
+                    <p className="text-[11px] text-stone-300 mt-1">
+                      Valor final al consumidor con merma técnica e impuestos aplicados.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-white/20">
+                    <div className="bg-white/10 p-2.5 rounded">
+                      <span className="text-[10px] font-mono text-[#D1BD9B] uppercase block">
+                        TOTAL {recipe.pax} PAX:
+                      </span>
+                      <span className="font-mono text-xl sm:text-2xl font-bold text-white block mt-0.5">
+                        {formatCurrency(calculations.precioRealVenta)}
+                      </span>
+                    </div>
+
+                    <div className="bg-[#8C7A5B]/30 border border-[#8C7A5B]/50 p-2.5 rounded">
+                      <span className="text-[10px] font-mono text-[#EED8AE] uppercase font-bold block">
+                        POR 1 PAX (CARTA):
+                      </span>
+                      <span className="font-mono text-xl sm:text-2xl font-bold text-[#FAF8F5] block mt-0.5 text-[#EED8AE]">
+                        {formatCurrency(calculations.precioRealVentaPorPax)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* 3. Step-by-Step Applied Technique */}

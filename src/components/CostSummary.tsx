@@ -1,6 +1,6 @@
 import React from 'react';
-import { RecipeCalculations, RoundingMethod } from '../types/recipe';
-import { formatCurrency } from '../utils/calculations';
+import { RecipeCalculations, RoundingMethod, Recipe } from '../types/recipe';
+import { formatCurrency, formatQuantity } from '../utils/calculations';
 import {
   DollarSign,
   Percent,
@@ -13,6 +13,9 @@ import {
   Coins,
   CheckCircle2,
   ShieldAlert,
+  Info,
+  Soup,
+  Layers,
 } from 'lucide-react';
 
 interface CostSummaryProps {
@@ -26,15 +29,7 @@ interface CostSummaryProps {
   redondearPrecios?: boolean;
   metodoRedondeo?: RoundingMethod;
   isEditMode: boolean;
-  onUpdateRecipe: (fields: {
-    margenErrorPorcentaje?: number;
-    mermaPorcentaje?: number;
-    porcentajeCosto?: number;
-    impoconsumoActivo?: boolean;
-    impoconsumoPorcentaje?: number;
-    redondearPrecios?: boolean;
-    metodoRedondeo?: RoundingMethod;
-  }) => void;
+  onUpdateRecipe: (fields: Partial<Recipe>) => void;
 }
 
 export const CostSummary: React.FC<CostSummaryProps> = ({
@@ -50,6 +45,157 @@ export const CostSummary: React.FC<CostSummaryProps> = ({
   isEditMode,
   onUpdateRecipe,
 }) => {
+  // =========================================================================
+  // MODALIDAD B: COSTEO POR LOTE O RENDIMIENTO (FONDOS, BASES, SALSAS MADRE)
+  // =========================================================================
+  if (calculations.tipoReceta === 'lote') {
+    return (
+      <section className="bg-white border border-[#DDD5C7] rounded-xl shadow-xs p-5 md:p-6 mb-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-5 border-b border-[#E8E2D5] gap-2">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#8C7A5B]" />
+            <h3 className="font-editorial text-xl font-bold text-[#1C1E21] tracking-tight uppercase">
+              ESTRUCTURA DE RENDIMIENTO Y COSTO UNITARIO DE PRODUCCIÓN
+            </h3>
+          </div>
+          <div className="text-xs text-stone-500 font-mono">
+            Modalidad: Preparación Base / Intermedia (Costeo por Lote)
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+          {/* Card 1: Costo Total Insumos Lote */}
+          <div className="bg-[#FAF8F5] border border-[#E4DDD1] rounded-xl p-4 flex flex-col justify-between text-center min-h-[200px]">
+            <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[#666F64] uppercase tracking-wider">
+              <PieChart className="w-4 h-4 text-[#8C7A5B]" />
+              <span>Costo Insumos del Lote</span>
+            </div>
+
+            <div className="my-auto py-2 flex flex-col items-center justify-center">
+              <div className="font-mono text-2xl sm:text-3xl font-extrabold text-[#1C1E21] tracking-tight">
+                {formatCurrency(calculations.costoTotalLote)}
+              </div>
+              <div className="text-[11px] text-stone-500 mt-1 font-mono">
+                {calculations.ingredientesCalculados.length} insumos registrados
+              </div>
+            </div>
+
+            <div className="pt-2.5 border-t border-[#EDE6DC] text-[11px] text-stone-500 text-center">
+              Suma de ingredientes consumidos en el lote.
+            </div>
+          </div>
+
+          {/* Card 2: Rendimiento Final Real */}
+          <div className="bg-[#FAF8F5] border border-[#E4DDD1] rounded-xl p-4 flex flex-col justify-between text-center min-h-[200px]">
+            <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[#666F64] uppercase tracking-wider">
+              <Scale className="w-4 h-4 text-[#8C7A5B]" />
+              <span>Rendimiento Final Obtenido</span>
+            </div>
+
+            <div className="my-auto py-2 flex flex-col items-center justify-center">
+              <div className="font-mono text-2xl sm:text-3xl font-extrabold text-[#242A24] tracking-tight">
+                {calculations.rendimientoFinal > 0
+                  ? `${formatQuantity(calculations.rendimientoFinal)} ${calculations.unidadRendimiento}`
+                  : '0 ml'}
+              </div>
+              <div className="text-[11px] text-[#8C7A5B] mt-1 font-mono font-semibold">
+                Normalizado: {formatQuantity(calculations.rendimientoFinalNormalizado)} {calculations.unidadRendimientoBase}
+              </div>
+            </div>
+
+            <div className="pt-2.5 border-t border-[#EDE6DC] text-[11px] text-stone-500 text-center">
+              Volumen/peso real tras cocción, evaporación y filtrado.
+            </div>
+          </div>
+
+          {/* Card 3: Costo Unitario de Rendimiento */}
+          <div className="bg-[#242A24] text-white border-2 border-[#8C7A5B] rounded-xl p-4 flex flex-col justify-between text-center min-h-[200px] shadow-sm">
+            <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-[#D1BD9B] uppercase tracking-wider">
+              <Coins className="w-4 h-4 text-[#D1BD9B]" />
+              <span>Costo por {calculations.unidadRendimientoBase}</span>
+            </div>
+
+            <div className="my-auto py-2 flex flex-col items-center justify-center">
+              <div className="font-mono text-2xl sm:text-3xl font-black text-[#FAF8F5] tracking-tight">
+                {formatCurrency(calculations.costoPorUnidadMinima)}
+                <span className="text-xs text-[#D1BD9B] font-normal ml-1">/{calculations.unidadRendimientoBase}</span>
+              </div>
+              <div className="mt-2 flex items-center justify-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-mono bg-white/10 px-2 py-0.5 rounded text-[#EFEBE4]">
+                  100 {calculations.unidadRendimientoBase}: <strong>{formatCurrency(calculations.costoPorCienUnidades)}</strong>
+                </span>
+                <span className="text-[10px] font-mono bg-[#8C7A5B]/30 px-2 py-0.5 rounded text-[#FAF8F5] font-bold">
+                  {calculations.unidadRendimientoBase === 'ml' ? '1 Litro' : '1 Kilo'}: <strong>{formatCurrency(calculations.costoPorUnidadMayor)}</strong>
+                </span>
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-white/20 text-[10px] text-stone-300 text-center">
+              Costo transferible a recetas que usen esta base.
+            </div>
+          </div>
+
+          {/* Card 4: Costos Adicionales de Producción (Opcional) */}
+          <div className="bg-[#FAF8F5] border border-[#E4DDD1] rounded-xl p-4 flex flex-col justify-between text-center min-h-[200px]">
+            <div className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[#666F64] uppercase tracking-wider">
+              <Receipt className="w-4 h-4 text-[#8C7A5B]" />
+              <span>Costos Adicionales Lote</span>
+            </div>
+
+            <div className="my-auto py-2 flex flex-col items-center justify-center">
+              {isEditMode ? (
+                <div className="flex items-center justify-center">
+                  <span className="text-stone-400 font-mono text-sm mr-1">$</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="100"
+                    value={calculations.costosAdicionalesProduccion === 0 ? '' : calculations.costosAdicionalesProduccion}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      onUpdateRecipe({
+                        batchYield: {
+                          rendimientoFinal: calculations.rendimientoFinal,
+                          unidadRendimiento: calculations.unidadRendimiento,
+                          costosAdicionalesProduccion: isNaN(val) ? 0 : val,
+                        },
+                      });
+                    }}
+                    placeholder="0"
+                    className="w-28 bg-white border border-[#DDD5C7] rounded px-2.5 py-1 text-center font-mono text-base font-bold text-[#1C1E21] outline-hidden focus:border-[#8C7A5B]"
+                  />
+                </div>
+              ) : (
+                <div className="font-mono text-xl font-bold text-[#1C1E21]">
+                  {formatCurrency(calculations.costosAdicionalesProduccion)}
+                </div>
+              )}
+              <div className="text-[11px] text-stone-500 mt-1">
+                Costo Total Producción: <strong className="text-stone-900">{formatCurrency(calculations.costoTotalProduccionLote)}</strong>
+              </div>
+            </div>
+
+            <div className="pt-2.5 border-t border-[#EDE6DC] text-[11px] text-stone-500 text-center">
+              Energía específica o insumos auxiliares (opcional).
+            </div>
+          </div>
+        </div>
+
+        {/* Informative Note for Culinary Staff */}
+        <div className="p-3.5 bg-[#FAF8F5] border border-[#E8E2D5] rounded-lg text-xs text-stone-600 flex items-start gap-2.5">
+          <Info className="w-4 h-4 text-[#8C7A5B] shrink-0 mt-0.5" />
+          <div className="leading-relaxed">
+            <strong className="text-[#1C1E21]">Principio Gastronómico de Preparación Base:</strong> Las preparaciones intermedias (como fondos, caldos o salsas madre) no están destinadas a la venta directa al público, por lo que <strong>no generan precio de carta comercial ni impoconsumo</strong>. Su costo unitario real ({formatCurrency(calculations.costoPorUnidadMinima)} por {calculations.unidadRendimientoBase}) se integrará automáticamente cuando la agregues como ingrediente en una receta de carta, asegurando un costeo exacto sin duplicar mermas ni insumos.
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // =========================================================================
+  // MODALIDAD A: COSTEO POR PORCIONES (VENTA DIRECTA, CARTA) - 100% PRESERVADO
+  // =========================================================================
   return (
     <section className="bg-white border border-[#DDD5C7] rounded-xl shadow-xs p-5 md:p-6 mb-6">
       {/* Header */}

@@ -5,9 +5,11 @@ import {
   StandardUnit,
   GrupoInventario,
   GRUPO_INVENTARIO_CONFIG,
+  TipoReceta,
+  Recipe,
 } from '../types/recipe';
-import { formatCurrency, formatQuantity, getUnitConversionFactor } from '../utils/calculations';
-import { Trash2, ArrowUp, ArrowDown, AlertCircle, ChevronDown } from 'lucide-react';
+import { formatCurrency, formatQuantity, getUnitConversionFactor, calculateRecipeTotals } from '../utils/calculations';
+import { Trash2, ArrowUp, ArrowDown, AlertCircle, ChevronDown, Soup, RefreshCw, Check } from 'lucide-react';
 
 interface IngredientRowProps {
   item: IngredientItem;
@@ -15,6 +17,8 @@ interface IngredientRowProps {
   index: number;
   totalItems: number;
   isEditMode: boolean;
+  tipoReceta?: TipoReceta;
+  availableBaseRecipes?: Recipe[];
   onUpdate: (updated: Partial<IngredientItem>) => void;
   onRemove: () => void;
   onMoveUp: () => void;
@@ -47,12 +51,40 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
   index,
   totalItems,
   isEditMode,
+  tipoReceta = 'porciones',
+  availableBaseRecipes = [],
   onUpdate,
   onRemove,
   onMoveUp,
   onMoveDown,
 }) => {
   const { minUnitName } = getUnitConversionFactor(item.unidad === 'personalizada' ? (item.customUnidad || '') : item.unidad);
+  const isLote = tipoReceta === 'lote';
+
+  // Check if this item is a linked base recipe and whether its live cost has changed
+  const linkedBaseRecipe = item.esPreparacionBase && item.baseRecipeId
+    ? availableBaseRecipes.find((r) => r.id === item.baseRecipeId)
+    : undefined;
+
+  let liveBaseCost: number | null = null;
+  let hasCostDivergence = false;
+
+  if (linkedBaseRecipe) {
+    const liveCalcs = calculateRecipeTotals(linkedBaseRecipe);
+    liveBaseCost = liveCalcs.costoPorUnidadMinima;
+    if (Math.abs(liveBaseCost - item.valorUnidadMinima) > 0.001) {
+      hasCostDivergence = true;
+    }
+  }
+
+  const handleApplyLiveBaseCost = () => {
+    if (liveBaseCost !== null) {
+      onUpdate({
+        valorUnidadMinima: liveBaseCost,
+        baseRecipeUnitCost: liveBaseCost,
+      });
+    }
+  };
 
   return (
     <tr
@@ -93,9 +125,15 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
 
       {/* 2. G.I (Grupo de Inventario: f, c, L, e, s) */}
       <td className="py-2.5 px-2 text-center align-middle">
-        {isEditMode ? (
+        {item.esPreparacionBase ? (
+          <span
+            className="inline-flex items-center justify-center font-mono font-bold text-[10px] px-2 py-0.5 rounded bg-[#2E372E] text-[#D1BD9B] border border-[#8C7A5B] shadow-2xs"
+            title="Preparación Base / Sub-receta intermedia"
+          >
+            BASE
+          </span>
+        ) : isEditMode ? (
           <div className="relative inline-block w-full max-w-[76px]">
-            {/* Visual badge displaying the letter clearly */}
             <div
               className={`w-full flex items-center justify-between gap-1 px-2 py-1 rounded border text-xs font-mono font-extrabold shadow-2xs transition-all ${
                 item.grupoInventario
@@ -109,7 +147,6 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
               <ChevronDown className="w-3 h-3 opacity-60 shrink-0" />
             </div>
 
-            {/* Transparent overlay select capturing all clicks and touch events cleanly */}
             <select
               value={item.grupoInventario || ''}
               onChange={(e) =>
@@ -147,13 +184,36 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
 
       {/* 3. Ingrediente */}
       <td className="py-2.5 px-3 align-middle">
-        {isEditMode ? (
+        {item.esPreparacionBase ? (
+          <div>
+            <div className="flex items-center gap-1.5 font-semibold text-xs text-[#2E372E]">
+              <Soup className="w-3.5 h-3.5 text-[#8C7A5B] shrink-0" />
+              <span>{item.ingrediente}</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#FAF8F5] border border-[#DDD5C7] text-[#8C7A5B]">
+                Sub-receta
+              </span>
+            </div>
+            {hasCostDivergence && isEditMode && liveBaseCost !== null && (
+              <div className="mt-1 flex items-center gap-1.5 p-1 rounded bg-amber-50 border border-amber-200 text-[10px] text-amber-800">
+                <span>Costo base actualizado a {formatCurrency(liveBaseCost)}/{minUnitName}</span>
+                <button
+                  type="button"
+                  onClick={handleApplyLiveBaseCost}
+                  className="font-bold underline text-[#8C7A5B] hover:text-[#5E513B]"
+                  title="Actualizar al costo actual de la base"
+                >
+                  [Actualizar]
+                </button>
+              </div>
+            )}
+          </div>
+        ) : isEditMode ? (
           <div>
             <input
               type="text"
               value={item.ingrediente}
               onChange={(e) => onUpdate({ ingrediente: e.target.value })}
-              placeholder="Ej: Arroz tipo selecto"
+              placeholder={isLote ? 'Ej: Huesos de ave / Carcasas' : 'Ej: Arroz tipo selecto'}
               className="w-full bg-white border border-[#DDD5C7] rounded px-2.5 py-1 text-xs text-[#1C1E21] font-medium placeholder:text-stone-400 focus:border-[#8C7A5B] outline-hidden shadow-2xs"
             />
             {calculated.incompleto && calculated.mensajeIncompleto && (
@@ -170,14 +230,14 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
         )}
       </td>
 
-      {/* 3. Mise en place */}
+      {/* 4. Mise en place */}
       <td className="py-2.5 px-3 align-middle">
         {isEditMode ? (
           <input
             type="text"
             value={item.miseEnPlace}
             onChange={(e) => onUpdate({ miseEnPlace: e.target.value })}
-            placeholder="Ej: Brunoise, julianas, lavado, pelado..."
+            placeholder={isLote ? 'Ej: Lavados, blanqueados a 100°C' : 'Ej: Brunoise, julianas, pelado...'}
             className="w-full bg-white border border-[#DDD5C7] rounded px-2 py-1 text-xs text-stone-700 placeholder:text-stone-400 focus:border-[#8C7A5B] outline-hidden shadow-2xs"
           />
         ) : (
@@ -187,9 +247,9 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
         )}
       </td>
 
-      {/* 4. Unidad de medida */}
+      {/* 5. Unidad de medida */}
       <td className="py-2.5 px-3 align-middle text-center">
-        {isEditMode ? (
+        {isEditMode && !item.esPreparacionBase ? (
           <div className="space-y-1">
             <select
               value={item.unidad}
@@ -219,75 +279,144 @@ export const IngredientRow: React.FC<IngredientRowProps> = ({
         )}
       </td>
 
-      {/* 5. Cantidad x 1 Pax */}
-      <td className="py-2.5 px-3 align-middle text-right">
-        {isEditMode ? (
-          <input
-            type="number"
-            min="0"
-            step="any"
-            value={item.cantidadPorPax === 0 ? '' : item.cantidadPorPax}
-            onChange={(e) => {
-              const val = parseFloat(e.target.value);
-              onUpdate({ cantidadPorPax: isNaN(val) ? 0 : val });
-            }}
-            placeholder="0.00"
-            className="w-24 bg-white border border-[#DDD5C7] rounded px-2 py-1 text-right font-mono text-xs text-[#1C1E21] font-medium focus:border-[#8C7A5B] outline-hidden shadow-2xs"
-          />
-        ) : (
-          <span className="font-mono text-xs font-semibold text-[#1C1E21]">
-            {formatQuantity(calculated.cantidadPorPax)}
-          </span>
-        )}
-      </td>
+      {/* ================================================================= */}
+      {/* COLUMNAS ESPECÍFICAS SEGÚN MODALIDAD (LOTE vs PORCIONES)          */}
+      {/* ================================================================= */}
+      {isLote ? (
+        <>
+          {/* Modalidad Lote: Cantidad Lote */}
+          <td className="py-2.5 px-3 align-middle text-right bg-[#F5F2EA]/40">
+            {isEditMode ? (
+              <input
+                type="number"
+                min="0"
+                step="any"
+                value={
+                  item.cantidadLote !== undefined
+                    ? item.cantidadLote === 0 ? '' : item.cantidadLote
+                    : item.cantidadPorPax === 0 ? '' : item.cantidadPorPax
+                }
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  onUpdate({ cantidadLote: isNaN(val) ? 0 : val });
+                }}
+                placeholder="0.00"
+                className="w-24 bg-white border border-[#DDD5C7] rounded px-2 py-1 text-right font-mono text-xs text-[#1C1E21] font-bold focus:border-[#8C7A5B] outline-hidden shadow-2xs"
+              />
+            ) : (
+              <span className="font-mono text-xs font-bold text-[#1C1E21]">
+                {formatQuantity(item.cantidadLote ?? item.cantidadPorPax)}
+              </span>
+            )}
+            <span className="text-[10px] text-stone-500 ml-1">{calculated.unidad}</span>
+          </td>
 
-      {/* 6. Cantidad Total (Calculada automáticamente) */}
-      <td className="py-2.5 px-3 align-middle text-right bg-[#F5F2EA]/40">
-        <span className="font-mono text-xs font-bold text-[#1C1E21]">
-          {formatQuantity(calculated.cantidadTotal)}
-        </span>
-        <span className="text-[10px] text-stone-500 ml-1">{calculated.unidad}</span>
-      </td>
+          {/* Modalidad Lote: Valor Unidad Mínima */}
+          <td className="py-2.5 px-3 align-middle text-right">
+            {isEditMode ? (
+              <div className="relative inline-flex items-center">
+                <span className="absolute left-2 text-stone-400 font-mono text-xs">$</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={item.valorUnidadMinima === 0 ? '' : item.valorUnidadMinima}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    onUpdate({ valorUnidadMinima: isNaN(val) ? 0 : val });
+                  }}
+                  placeholder="0"
+                  className="w-24 bg-white border border-[#DDD5C7] rounded pl-5 pr-2 py-1 text-right font-mono text-xs text-[#1C1E21] font-medium focus:border-[#8C7A5B] outline-hidden shadow-2xs"
+                />
+              </div>
+            ) : (
+              <span className="font-mono text-xs text-stone-700">
+                {formatCurrency(calculated.valorUnidadMinima)}
+                <span className="text-[10px] text-stone-400 block font-normal">/{minUnitName}</span>
+              </span>
+            )}
+          </td>
 
-      {/* 7. Valor Gr/Ml o Unidad Mínima */}
-      <td className="py-2.5 px-3 align-middle text-right">
-        {isEditMode ? (
-          <div className="relative inline-flex items-center">
-            <span className="absolute left-2 text-stone-400 font-mono text-xs">$</span>
-            <input
-              type="number"
-              min="0"
-              step="any"
-              value={item.valorUnidadMinima === 0 ? '' : item.valorUnidadMinima}
-              onChange={(e) => {
-                const val = parseFloat(e.target.value);
-                onUpdate({ valorUnidadMinima: isNaN(val) ? 0 : val });
-              }}
-              placeholder="0"
-              className="w-24 bg-white border border-[#DDD5C7] rounded pl-5 pr-2 py-1 text-right font-mono text-xs text-[#1C1E21] font-medium focus:border-[#8C7A5B] outline-hidden shadow-2xs"
-            />
-          </div>
-        ) : (
-          <span className="font-mono text-xs text-stone-700">
-            {formatCurrency(calculated.valorUnidadMinima)}
-            <span className="text-[10px] text-stone-400 block font-normal">/{minUnitName}</span>
-          </span>
-        )}
-      </td>
+          {/* Modalidad Lote: Valor Total Insumo */}
+          <td className="py-2.5 px-3 align-middle text-right bg-[#EFEBE3]/60">
+            <span className="font-mono text-xs font-bold text-[#2E372E]">
+              {formatCurrency(calculated.costoIngredienteLote ?? calculated.valorTotal)}
+            </span>
+          </td>
+        </>
+      ) : (
+        <>
+          {/* Modalidad Porciones (100% PRESERVADO): 5. Cantidad x 1 Pax */}
+          <td className="py-2.5 px-3 align-middle text-right">
+            {isEditMode ? (
+              <input
+                type="number"
+                min="0"
+                step="any"
+                value={item.cantidadPorPax === 0 ? '' : item.cantidadPorPax}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  onUpdate({ cantidadPorPax: isNaN(val) ? 0 : val });
+                }}
+                placeholder="0.00"
+                className="w-24 bg-white border border-[#DDD5C7] rounded px-2 py-1 text-right font-mono text-xs text-[#1C1E21] font-medium focus:border-[#8C7A5B] outline-hidden shadow-2xs"
+              />
+            ) : (
+              <span className="font-mono text-xs font-semibold text-[#1C1E21]">
+                {formatQuantity(calculated.cantidadPorPax)}
+              </span>
+            )}
+          </td>
 
-      {/* 8. Valor x 1 Pax (Calculado automáticamente) */}
-      <td className="py-2.5 px-3 align-middle text-right bg-[#F5F2EA]/40">
-        <span className="font-mono text-xs font-semibold text-[#1C1E21]">
-          {formatCurrency(calculated.valorPorPax)}
-        </span>
-      </td>
+          {/* Modalidad Porciones: 6. Cantidad Total (Calculada automáticamente x No. PAX) */}
+          <td className="py-2.5 px-3 align-middle text-right bg-[#F5F2EA]/40">
+            <span className="font-mono text-xs font-bold text-[#1C1E21]">
+              {formatQuantity(calculated.cantidadTotal)}
+            </span>
+            <span className="text-[10px] text-stone-500 ml-1">{calculated.unidad}</span>
+          </td>
 
-      {/* 9. Valor Total (Calculado automáticamente) */}
-      <td className="py-2.5 px-3 align-middle text-right bg-[#EFEBE3]/60">
-        <span className="font-mono text-xs font-bold text-[#2E372E]">
-          {formatCurrency(calculated.valorTotal)}
-        </span>
-      </td>
+          {/* Modalidad Porciones: 7. Valor Gr/Ml o Unidad Mínima */}
+          <td className="py-2.5 px-3 align-middle text-right">
+            {isEditMode && !item.esPreparacionBase ? (
+              <div className="relative inline-flex items-center">
+                <span className="absolute left-2 text-stone-400 font-mono text-xs">$</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={item.valorUnidadMinima === 0 ? '' : item.valorUnidadMinima}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    onUpdate({ valorUnidadMinima: isNaN(val) ? 0 : val });
+                  }}
+                  placeholder="0"
+                  className="w-24 bg-white border border-[#DDD5C7] rounded pl-5 pr-2 py-1 text-right font-mono text-xs text-[#1C1E21] font-medium focus:border-[#8C7A5B] outline-hidden shadow-2xs"
+                />
+              </div>
+            ) : (
+              <span className="font-mono text-xs text-stone-700">
+                {formatCurrency(calculated.valorUnidadMinima)}
+                <span className="text-[10px] text-stone-400 block font-normal">/{minUnitName}</span>
+              </span>
+            )}
+          </td>
+
+          {/* Modalidad Porciones: 8. Valor x 1 Pax (Calculado automáticamente) */}
+          <td className="py-2.5 px-3 align-middle text-right bg-[#F5F2EA]/40">
+            <span className="font-mono text-xs font-semibold text-[#1C1E21]">
+              {formatCurrency(calculated.valorPorPax)}
+            </span>
+          </td>
+
+          {/* Modalidad Porciones: 9. Valor Total (Calculado automáticamente) */}
+          <td className="py-2.5 px-3 align-middle text-right bg-[#EFEBE3]/60">
+            <span className="font-mono text-xs font-bold text-[#2E372E]">
+              {formatCurrency(calculated.valorTotal)}
+            </span>
+          </td>
+        </>
+      )}
 
       {/* Row delete action */}
       {isEditMode && (
